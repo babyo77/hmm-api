@@ -164,7 +164,10 @@ if (response.success) {
 }
 ```
 
+
 If the `toast` is not configured, the error response will contain `"Toast not configured"`.
+
+### [see example](https://github.com/babyo77/hmm-api/blob/main/__tests__/web/lib/api.ts)
 
 ## License
 
