@@ -1,8 +1,23 @@
 # Introducing HMM-API: The Seamless Solution for API Calls in React, Next.js, and Node.js
 
+![HMM-API Banner](https://us-east-1.tixte.net/uploads/tanmay111-files.tixte.co/hmm_api.png)
+
 Tired of manually handling errors and showing toast notifications for every API call in your React, Next.js, or Node.js application? Simplify your API interaction with **HMM-API**, a powerful package that automates error handling, toast notifications, and much more!
 
 With **HMM-API**, you can focus on building your application while it handles the repetitive tasks for you. Whether you're working on a frontend React app or a backend Node.js server, **HMM-API** provides a consistent, easy-to-use solution for API management.
+
+##  What it does:
+
+- **Automates error handling** — no more try-catch headaches.
+Displays toast notifications for you (frontend).
+
+- **Lets you customize error parsing for relevant messages** 
+Works on both frontend (React/Next.js) and backend (Node.js) seamlessly.
+
+- **Centralizes global settings** for consistency across your app.
+Focus on building, not boilerplate! 🚀 Start using HMM-API and make API management effortless.
+
+
 
 ## Key Features:
 

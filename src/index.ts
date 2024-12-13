@@ -40,6 +40,7 @@ class ApiClient {
     this.isNodeEnvironment = typeof window === "undefined";
     this.parseErrorResponse = parseErrorResponse;
     this.credentials = credentials;
+    console.log("hmm-api by babyo7_");
   }
 
   setAuthToken(token: string | null): void {
