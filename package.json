@@ -1,0 +1,32 @@
+{
+  "name": "hmm-api",
+  "version": "1.0.3",
+  "description": "Fetch api wrapper",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "test": "npx tsc && nodemon __tests__/index.ts",
+    "build": "npx tsc",
+    "start": "node dist/src/index.js",
+    "dev": "nodemon src/index.ts"
+  },
+  "files": [
+    "dist",
+    "readme.md"
+  ],
+  "bin": "dist/src/index.js",
+  "keywords": [
+    "fetch",
+    "http",
+    "react",
+    "next-js"
+  ],
+  "author": "tanmay",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^22.8.6",
+    "sonner": "^1.7.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  }
+}
