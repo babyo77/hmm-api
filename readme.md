@@ -1,14 +1,25 @@
-# hmm-api
+# Introducing HMM-API: The Seamless Solution for API Calls in React, Next.js, and Node.js
 
-`hmm-api` is a TypeScript-based class that simplifies making API requests with built-in error handling and optional toast notifications for error feedback. It supports all HTTP methods (GET, POST, PUT, PATCH, DELETE) and is highly configurable.
+Tired of manually handling errors and showing toast notifications for every API call in your React, Next.js, or Node.js application? Simplify your API interaction with **HMM-API**, a powerful package that automates error handling, toast notifications, and much more!
 
-## Features
+With **HMM-API**, you can focus on building your application while it handles the repetitive tasks for you. Whether you're working on a frontend React app or a backend Node.js server, **HMM-API** provides a consistent, easy-to-use solution for API management.
 
-- Make HTTP requests (GET, POST, PUT, PATCH, DELETE)
-- Handle API responses with built-in error handling
-- Display error messages via toast notifications (optional)
-- Configurable global headers and authentication tokens
-- Custom error parsing logic
+## Key Features:
+
+- **Automatic Error Handling:** No more wrapping your API calls in `try-catch` blocks! **HMM-API** automatically catches and processes errors.
+- **Integrated Toast Notifications (for frontend apps):** Say goodbye to manually triggering toast messages for every failure. **HMM-API** handles error notifications for you on the frontend.
+- **Custom Error Parsing:** Customize how errors are parsed with your own function to display the most relevant information.
+- **Global Configurations:** Set global headers, credentials, and even control whether to show global toast messages across all API calls.
+- **Node.js Support:** **HMM-API** now fully supports backend integration with Node.js. Use the same package on both frontend and backend for seamless development.
+
+## Why HMM-API?
+
+- **Simplified API Integration:** No need to manually wrap each API call in error handling code.
+- **Cross-Platform Compatibility:** Use **HMM-API** seamlessly in both React/Next.js frontend applications and Node.js backend environments.
+- **Centralized Configuration:** Easily configure global settings, ensuring consistency across your entire application stack.
+- **Enhanced Developer Experience:** By abstracting away common API tasks, developers can focus more on core functionality.
+
+Start using **HMM-API** today and streamline your API management across both the frontend and backend. With automated error handling, intuitive configurations, and seamless integration in React, Next.js, and Node.js, you can build your app faster and with fewer headaches.
 
 ## Installation
 
@@ -31,13 +42,14 @@ yarn add hmm-api
 You can create an instance of `ApiClient` and configure it with options like toast notifications, global headers, and custom error handling.
 
 ```typescript
-import ApiClient from 'hmm-api';
 
-// Initialize ApiClient with optional configuration
-const api = new ApiClient({
-  toast: yourToastInstance,  // Pass your toast instance (if using one eg. sonner, react-toast etc...)
-  showGlobalToast: true,     // Optionally show global error toasts (default true)
-});
+interface ApiClientConfig {
+  toast?: any;  // Customize toast message or toast component (frontend only)
+  globalHeaders?: Record<string, string>;  // Set global headers for all requests
+  showGlobalToast?: boolean;  // Show global toast notifications for all API errors (frontend only)
+  parseErrorResponse?: (error: any) => string;  // Custom error parsing function
+  credentials?: RequestCredentials;  // Set global credentials for requests (e.g., 'include', 'same-origin')
+}
 ```
 
 ### 2. Making Requests
@@ -155,6 +167,4 @@ if (response.success) {
 
 If the `toast` is not configured, the error response will contain `"Toast not configured"`.
 
-## License
 
-This project is licensed under the MIT License.
