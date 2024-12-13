@@ -42,14 +42,13 @@ yarn add hmm-api
 You can create an instance of `ApiClient` and configure it with options like toast notifications, global headers, and custom error handling.
 
 ```typescript
+import ApiClient from 'hmm-api';
 
-interface ApiClientConfig {
-  toast?: any;  // Customize toast message or toast component (frontend only)
-  globalHeaders?: Record<string, string>;  // Set global headers for all requests
-  showGlobalToast?: boolean;  // Show global toast notifications for all API errors (frontend only)
-  parseErrorResponse?: (error: any) => string;  // Custom error parsing function
-  credentials?: RequestCredentials;  // Set global credentials for requests (e.g., 'include', 'same-origin')
-}
+// Initialize ApiClient with optional configuration
+const api = new ApiClient({
+  toast: yourToastInstance,  // Pass your toast instance (if using one eg. sonner, react-toast etc...)
+  showGlobalToast: true,     // Optionally show global error toasts (default true)
+});
 ```
 
 ### 2. Making Requests
@@ -167,4 +166,6 @@ if (response.success) {
 
 If the `toast` is not configured, the error response will contain `"Toast not configured"`.
 
+## License
 
+This project is licensed under the MIT License.
