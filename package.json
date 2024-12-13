@@ -1,6 +1,6 @@
 {
   "name": "hmm-api",
-  "version": "1.0.31",
+  "version": "1.0.4",
   "description": "Fetch api wrapper",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
