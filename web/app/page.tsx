@@ -10,7 +10,7 @@ export default function Home() {
   const [copied, setCopied] = useState(false);
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText("npm i hmm-api").then(() => {
+    navigator.clipboard.writeText("npm i hmm-api@latest").then(() => {
       setCopied(true);
 
       setTimeout(() => setCopied(false), 2000);
