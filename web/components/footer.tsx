@@ -42,7 +42,7 @@ export function FooterButtons() {
         href="https://github.com/babyo77/hmm-api"
         className={buttonVariants({ variant: "outline", size: "sm" })}
       >
-        <HeartIcon className="h-[0.8rem] w-4 mr-2 text-primary group-hover:fill-current" />
+        <HeartIcon className="h-[0.8rem] w-4 mr-2 text-primary group-hover:fill-black" />
         Star on github
       </Link>
     </div>
