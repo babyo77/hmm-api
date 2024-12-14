@@ -20,7 +20,7 @@ const GeistMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "hmm-api - Docs",
+  title: "hmm-api",
   metadataBase: new URL("https://hmm-api.vercel.app"),
   description: `⚡️ Effortless API Calls 🌐 with Smart Error Handling ⚠️ & Toast
         Notifications 🍞 - Simple & Reliable 🚀`,
