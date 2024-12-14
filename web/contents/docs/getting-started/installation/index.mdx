@@ -1,0 +1,79 @@
+---
+title: Installation
+description: Installation Guide for hmm-api.
+---
+
+### 1. Installation
+
+**Using npm:**
+
+```bash
+npm install hmm-api
+```
+
+**Using yarn:**
+
+```bash
+yarn add hmm-api
+```
+
+### 2. Import and Usage
+
+**In your JavaScript file:**
+
+```javascript
+import ApiClient from "hmm-api";
+
+// Create an instance of the ApiClient
+const apiClient = new ApiClient();
+
+// Make API requests
+apiClient
+  .get("https://api.example.com/data")
+  .then((response) => {
+    if (response.success) {
+      // Handle successful response
+      console.log(response.data);
+    } else {
+      // Handle error response
+      console.error(response.error);
+    }
+  })
+  .catch((error) => {
+    // Handle general errors
+    console.error(error);
+  });
+```
+
+### 3. API Configuration (Optional)
+
+You can customize the `ApiClient` instance with the following options:
+
+- **`toast`**: An instance of your preferred toast library for displaying notifications.
+- **`globalHeaders`**: An object containing headers to be included in all requests.
+- **`showErrorToast`**: A boolean indicating whether to show toast notifications for errors (default: true).
+- **`parseErrorResponse`**: A function to customize error message parsing.
+- **`credentials`**: A string specifying the credentials mode for requests (e.g., 'include', 'same-origin').
+
+**Example with configuration:**
+
+```javascript
+import ApiClient from "hmm-api";
+import MyToastLibrary from "my-toast-library";
+
+const apiClient = new ApiClient({
+  toast: MyToastLibrary,
+  globalHeaders: {
+    Authorization: "Bearer your_token",
+  },
+  parseErrorResponse: (error) => {
+    // Custom error parsing logic
+    if (typeof error === "string") return error;
+    if (error.message) return error.message;
+    if (error.error?.message) return error.error.message;
+    return "An unexpected error occurred";
+  },
+});
+```
+
+**Remember to replace `https://api.example.com/data` with the actual URL of your API endpoint and adjust the configuration options as needed.**

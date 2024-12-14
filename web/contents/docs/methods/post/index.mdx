@@ -1,0 +1,155 @@
+# Using POST Method in hmm-api
+
+## Basic Usage
+
+### 1. Import and Create API Client
+
+```typescript
+import ApiClient from "hmm-api";
+
+// Create an API client
+const api = new ApiClient();
+```
+
+### 2. Simple POST Request
+
+```typescript
+// Create a new user
+const newUser = {
+  name: "John Doe",
+  email: "john@example.com",
+};
+
+const response = await api.post("/users", newUser);
+
+// Check if request was successful
+if (response.success) {
+  // Access the created user data
+  const createdUser = response.data;
+  console.log(createdUser);
+} else {
+  // Handle any errors
+  console.error(response.error);
+}
+```
+
+## Advanced Usage
+
+### With Type Safety
+
+```typescript
+// Define interfaces for request and response
+interface CreateUserRequest {
+  name: string;
+  email: string;
+}
+
+interface CreateUserResponse {
+  id: number;
+  name: string;
+  email: string;
+}
+
+// Typed POST request
+const userData: CreateUserRequest = {
+  name: "Jane Doe",
+  email: "jane@example.com",
+};
+
+const response = await api.post<CreateUserResponse>("/users", userData);
+
+if (response.success) {
+  // TypeScript knows the exact shape of the response
+  const createdUser = response.data;
+  console.log(createdUser.id); // Fully typed!
+}
+```
+
+### Custom Options
+
+#### Add Headers
+
+```typescript
+const response = await api.post("/users", userData, {
+  headers: {
+    "X-Request-ID": generateUniqueId(),
+    "Content-Type": "application/json",
+  },
+});
+```
+
+#### Control Error Toasts
+
+```typescript
+// Disable error notifications for this request
+const response = await api.post("/users", userData, {
+  showErrorToast: false,
+});
+```
+
+#### Add a Cleanup Function
+
+```typescript
+const response = await api.post("/users", userData, {
+  finally: () => {
+    // This runs after the request, whether it succeeds or fails
+    resetForm();
+    hideLoadingSpinner();
+  },
+});
+```
+
+## Handling Different Data Types
+
+### Sending FormData
+
+```typescript
+// For file uploads or multipart form data
+const formData = new FormData();
+formData.append("file", fileInput.files[0]);
+formData.append("username", "John");
+
+const response = await api.post("/upload", formData);
+```
+
+## Full Example
+
+```typescript
+import ApiClient from "hmm-api";
+
+// Assuming you have a toast library configured
+const api = new ApiClient({
+  toast: yourToastLibrary,
+});
+
+async function createUserProfile() {
+  const profileData = {
+    username: "newuser",
+    email: "user@example.com",
+    age: 30,
+  };
+
+  const response = await api.post<UserProfile>("/profiles", profileData, {
+    headers: {
+      Authorization: `Bearer ${yourAuthToken}`,
+    },
+    showErrorToast: true,
+    finally: () => {
+      clearForm();
+    },
+  });
+
+  if (response.success) {
+    displaySuccessMessage("Profile created successfully");
+    updateLocalState(response.data);
+  }
+}
+```
+
+## Quick Tips
+
+- Always define request and response types for type safety
+- Check `response.success` before using `response.data`
+- Use the `finally` callback for cleanup operations
+- Configure global settings when creating the ApiClient
+- Supports both JSON and FormData payloads

@@ -1,0 +1,76 @@
+---
+title: Configuration Options
+description: A comprehensive overview of all available configuration options.
+---
+
+Here's a breakdown of the configuration options available in `hmm-api`:
+
+### 1. baseUrl
+
+- **Default:** None
+- **Purpose:** Sets a common base URL for all API requests.
+- **Example:**
+  ```javascript
+  const apiClient = new ApiClient({ baseUrl: "https://api.example.com" });
+  ```
+
+### 2. toast
+
+- **Default:** None
+- **Purpose:** Integrates a toast library for notifications.
+- **Example:**
+  ```javascript
+  import MyToastLibrary from "my-toast-library";
+  const apiClient = new ApiClient({ toast: MyToastLibrary });
+  ```
+
+### 3. globalHeaders
+
+- **Default:** None
+- **Purpose:** Sets headers included in all requests.
+- **Example:**
+  ```javascript
+  const apiClient = new ApiClient({
+    globalHeaders: {
+      Authorization: "Bearer your_token",
+      "Content-Type": "application/json",
+    },
+  });
+  ```
+
+### 4. showGlobalToast
+
+- **Default:** `true`
+- **Purpose:** Controls global toast display.
+- **Example:**
+  ```javascript
+  const apiClient = new ApiClient({ showGlobalToast: false });
+  ```
+
+### 5. parseErrorResponse
+
+- **Default:** Default parser
+- **Purpose:** Customizes error message parsing.
+- **Example:**
+  ```javascript
+  const apiClient = new ApiClient({
+    parseErrorResponse: (error) => {
+      // Custom error parsing logic
+      if (typeof error === "string") return error;
+      if (error.message) return error.message;
+      if (error.error?.message) return error.error.message;
+      return "An unexpected error occurred";
+    },
+  });
+  ```
+
+### 6. credentials
+
+- **Default:** `same-origin`
+- **Purpose:** Controls credential handling.
+- **Example:**
+  ```javascript
+  const apiClient = new ApiClient({ credentials: "include" });
+  ```
+
+By customizing these options, you can tailor `hmm-api` to your specific project needs, ensuring a robust and flexible HTTP client solution.

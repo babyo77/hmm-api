@@ -1,0 +1,133 @@
+# Using DELETE Method in hmm-api
+
+## Basic Usage
+
+### 1. Import and Create API Client
+
+```typescript
+import ApiClient from "hmm-api";
+
+// Create an API client
+const api = new ApiClient();
+```
+
+### 2. Simple DELETE Request
+
+```typescript
+// Delete a user by ID
+const response = await api.delete("/users/123");
+
+// Check if request was successful
+if (response.success) {
+  console.log("User deleted successfully");
+} else {
+  // Handle any errors
+  console.error(response.error);
+}
+```
+
+## Advanced Usage
+
+### With Type Safety
+
+```typescript
+// Define a response interface if the API returns specific data
+interface DeleteResponse {
+  message: string;
+  deletedId: number;
+}
+
+const response = await api.delete<DeleteResponse>("/users/123");
+
+if (response.success) {
+  // TypeScript knows the exact shape of the response
+  const deleteResult = response.data;
+  console.log(deleteResult.message);
+}
+```
+
+### Adding Custom Options
+
+#### Add Headers
+
+```typescript
+const response = await api.delete("/users/123", {
+  headers: {
+    "X-Reason": "Account Closure",
+    Authorization: `Bearer ${yourAuthToken}`,
+  },
+});
+```
+
+#### Control Error Toasts
+
+```typescript
+// Disable error notifications for this request
+const response = await api.delete("/users/123", {
+  showErrorToast: false,
+});
+```
+
+#### Add a Cleanup Function
+
+```typescript
+const response = await api.delete("/users/123", {
+  finally: () => {
+    // This runs after the request, whether it succeeds or fails
+    updateUserList();
+    hideLoadingSpinner();
+  },
+});
+```
+
+## Full Example Scenario
+
+```typescript
+import ApiClient from "hmm-api";
+
+// Assuming you have a toast library configured
+const api = new ApiClient({
+  toast: yourToastLibrary,
+});
+
+async function removeUser(userId: number) {
+  const response = await api.delete<{ message: string }>(`/users/${userId}`, {
+    headers: {
+      Authorization: `Bearer ${yourAuthToken}`,
+    },
+    showErrorToast: true,
+    finally: () => {
+      resetSelectionState();
+    },
+  });
+
+  if (response.success) {
+    // User successfully deleted
+    showSuccessNotification("User removed");
+    removeUserFromLocalState(userId);
+  } else {
+    // Handle deletion failure
+    showErrorNotification("Failed to delete user");
+  }
+}
+```
+
+## Practical Considerations
+
+### Deleting with Query Parameters
+
+```typescript
+// Delete with additional parameters
+const response = await api.delete("/items", {
+  // Query parameters can be part of the URL
+  url: "/items?status=inactive&olderThan=30days",
+});
+```
+
+## Quick Tips
+
+- Always verify the successful deletion
+- Use type safety for precise response handling
+- Utilize the `finally` callback for consistent UI updates
+- Configure authorization headers for protected routes
+- Handle both success and failure scenarios gracefully

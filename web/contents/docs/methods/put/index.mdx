@@ -1,0 +1,194 @@
+# Using PUT Method in hmm-api
+
+## Basic Usage
+
+### 1. Import and Create API Client
+
+```typescript
+import ApiClient from "hmm-api";
+
+// Create an API client
+const api = new ApiClient();
+```
+
+### 2. Simple PUT Request
+
+```typescript
+// Replace entire user resource
+const completeUserData = {
+  name: "John Doe",
+  email: "john@example.com",
+  age: 30,
+  active: true,
+};
+
+const response = await api.put("/users/123", completeUserData);
+
+// Check if request was successful
+if (response.success) {
+  console.log("User completely updated");
+} else {
+  // Handle any errors
+  console.error(response.error);
+}
+```
+
+## Advanced Usage
+
+### With Type Safety
+
+```typescript
+// Define interfaces for full resource replacement
+interface UserResource {
+  id: number;
+  name: string;
+  email: string;
+  age: number;
+  active: boolean;
+}
+
+const fullUserUpdate: UserResource = {
+  id: 123,
+  name: "John Doe",
+  email: "john.doe@example.com",
+  age: 31,
+  active: true,
+};
+
+const response = await api.put<UserResource>("/users/123", fullUserUpdate);
+
+if (response.success) {
+  // TypeScript knows the exact shape of the response
+  const updatedUser = response.data;
+  console.log(updatedUser.name);
+}
+```
+
+### Custom Options
+
+#### Add Headers
+
+```typescript
+const response = await api.put("/users/123", fullUserUpdate, {
+  headers: {
+    "X-Update-Reason": "Profile Revision",
+    Authorization: `Bearer ${yourAuthToken}`,
+  },
+});
+```
+
+#### Control Error Toasts
+
+```typescript
+// Disable error notifications for this request
+const response = await api.put("/users/123", fullUserUpdate, {
+  showErrorToast: false,
+});
+```
+
+#### Add a Cleanup Function
+
+```typescript
+const response = await api.put("/users/123", fullUserUpdate, {
+  finally: () => {
+    // This runs after the request, whether it succeeds or fails
+    resetForm();
+    hideLoadingSpinner();
+  },
+});
+```
+
+## Full Example Scenario
+
+```typescript
+import ApiClient from "hmm-api";
+
+// Assuming you have a toast library configured
+const api = new ApiClient({
+  toast: yourToastLibrary,
+});
+
+async function updateEntireUserProfile() {
+  // Complete profile replacement
+  const completeProfile = {
+    username: "johndoe",
+    email: "john.doe@example.com",
+    profile: {
+      firstName: "John",
+      lastName: "Doe",
+      bio: "Software developer",
+      skills: ["TypeScript", "React", "Node.js"],
+    },
+    settings: {
+      theme: "dark",
+      notifications: true,
+    },
+  };
+
+  const response = await api.put<UserProfile>("/profile", completeProfile, {
+    headers: {
+      Authorization: `Bearer ${yourAuthToken}`,
+    },
+    showErrorToast: true,
+    finally: () => {
+      clearFormState();
+    },
+  });
+
+  if (response.success) {
+    // Replace entire local profile
+    replaceEntireProfile(response.data);
+    showSuccessNotification("Profile completely updated");
+  }
+}
+```
+
+## Key Differences from PATCH
+
+### PUT vs PATCH
+
+- **PUT**: Replaces the entire resource
+- **PATCH**: Updates only specific fields
+
+```typescript
+// PUT - Replaces entire resource
+api.put("/users/123", {
+  // Must include ALL fields
+  name: "New Name",
+  email: "new@email.com",
+  age: 30,
+  // All previous fields must be included
+});
+
+// PATCH - Updates only specific fields
+api.patch("/users/123", {
+  // Only update what's needed
+  name: "New Name",
+});
+```
+
+## Practical Considerations
+
+### Complete Resource Replacement
+
+```typescript
+// Ensure you send ALL required fields
+const completeResourceUpdate = {
+  // Include ALL fields expected by the server
+  id: 123,
+  name: "Updated Name",
+  email: "updated@example.com",
+  // All other fields must be present
+  createdAt: new Date().toISOString(),
+};
+
+const response = await api.put("/resources/123", completeResourceUpdate);
+```
+
+## Quick Tips
+
+- PUT completely replaces the existing resource
+- Always include ALL required fields
+- Be cautious about unintentionally removing data
+- Leverage type safety for comprehensive updates
+- Handle potential data loss carefully
