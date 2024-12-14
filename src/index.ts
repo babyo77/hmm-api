@@ -6,6 +6,7 @@ export interface ApiResponse<T> {
 }
 
 interface ApiClientConfig {
+  baseUrl?: string | null; // Optional base URL
   toast?: any;
   globalHeaders?: Record<string, string>;
   showGlobalToast?: boolean;
@@ -14,6 +15,7 @@ interface ApiClientConfig {
 }
 
 class ApiClient {
+  private baseUrl: string | null = null;
   private authToken: string | null = null;
   private globalHeaders: Record<string, string> = {};
   private showGlobalToast: boolean = true;
@@ -23,6 +25,7 @@ class ApiClient {
   private credentials: RequestCredentials;
 
   constructor({
+    baseUrl = null,
     toast = null,
     globalHeaders = {},
     showGlobalToast = true,
@@ -34,6 +37,7 @@ class ApiClient {
     },
     credentials = "same-origin", // Default credentials setting
   }: ApiClientConfig = {}) {
+    this.baseUrl = baseUrl;
     this.toast = toast;
     this.globalHeaders = globalHeaders;
     this.showGlobalToast = showGlobalToast;
@@ -129,6 +133,7 @@ class ApiClient {
       finally: finallyCallback,
       ...fetchOptions
     } = options;
+
     if (!this.toast && showErrorToast) {
       return {
         success: false,
@@ -161,7 +166,9 @@ class ApiClient {
         headers.set("Authorization", `Bearer ${this.authToken}`);
       }
 
-      const response = await fetch(url, {
+      const fullUrl = this.baseUrl ? `${this.baseUrl}${url}` : url;
+
+      const response = await fetch(fullUrl, {
         method,
         ...fetchOptions,
         headers,

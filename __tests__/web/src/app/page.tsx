@@ -1,11 +1,30 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
 
-export default function Home() {
+export default function Demo() {
+  const [user, setUser] = useState<any>();
+  const addUser = async () => {
+    const payload = {};
+    const response = await api.post("/uknown", payload, {
+      finally: () => {
+        console.log("api request successful");
+      },
+    });
+
+    if (response.success) {
+      setUser(response.data);
+    }
+  };
+
   useEffect(() => {
-    api.get("https://music-player-api-mu.vercel.app/s");
-  });
-  return;
+    addUser();
+  }, []);
+  return (
+    <div className=" flex items-center justify-center h-screen">
+      {JSON.stringify(user)}
+    </div>
+  );
 }

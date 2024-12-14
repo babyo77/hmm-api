@@ -1,6 +1,7 @@
 import ApiClient from "../src/index";
 
 const api = new ApiClient({
+  baseUrl: "https://music-player-api-mu.vercel.app",
   showGlobalToast: false,
   credentials: "include",
   parseErrorResponse: (error) => {
@@ -12,7 +13,7 @@ const api = new ApiClient({
 });
 
 (async () => {
-  const getResponse = await api.get("https://music-player-api-mu.vercel.app/s");
+  const getResponse = await api.get("/a/xaraa");
   if (getResponse.success) {
     console.log(getResponse.data);
     return;
