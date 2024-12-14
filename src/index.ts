@@ -107,9 +107,7 @@ class ApiClient {
   private handleError(error: any, showErrorToast: boolean): ApiResponse<never> {
     const errorMessage = this.parseErrorResponse(error);
     if (error.name !== "AbortError" && showErrorToast) {
-      this.toast.error(errorMessage, {
-        style: { background: "#e94625" },
-      });
+      this.toast.error(errorMessage);
     }
 
     return {
