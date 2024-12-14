@@ -3,9 +3,11 @@
 
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
-
+interface demo {
+  name: string;
+}
 export default function Demo() {
-  const [user, setUser] = useState<any>();
+  const [user, setUser] = useState<demo>();
   const addUser = async () => {
     const payload = {};
     const response = await api.post("/uknown", payload, {
