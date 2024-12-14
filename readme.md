@@ -10,10 +10,8 @@ With **HMM-API**, you can focus on building your application while it handles th
 
 - **Automates error handling** — no more try-catch headaches.
 Displays toast notifications for you (frontend).
-
 - **Lets you customize error parsing for relevant messages** 
 Works on both frontend (React/Next.js) and backend (Node.js) seamlessly.
-
 - **Centralizes global settings** for consistency across your app.
 Focus on building, not boilerplate! 🚀 Start using HMM-API and make API management effortless.
 
