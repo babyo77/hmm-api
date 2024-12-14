@@ -8,60 +8,61 @@
 @tailwind components;
 @tailwind utilities;
 
+/* nebula */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 20 14.3% 4.1%;
-    --card: 0 0% 100%;
-    --card-foreground: 20 14.3% 4.1%;
+    --background: 152 9% 98%; /* Soft white with a hint of green */
+    --foreground: 160 10% 10%; /* Dark forest green */
+    --card: 0 0% 100%; /* Pure white for a clean look */
+    --card-foreground: 160 10% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 20 14.3% 4.1%;
-    --primary: 24 9.8% 10%;
-    --primary-foreground: 60 9.1% 97.8%;
-    --secondary: 60 4.8% 95.9%;
-    --secondary-foreground: 24 9.8% 10%;
-    --muted: 60 4.8% 95.9%;
-    --muted-foreground: 25 5.3% 44.7%;
-    --accent: 60 4.8% 95.9%;
-    --accent-foreground: 24 9.8% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 60 9.1% 97.8%;
-    --border: 20 5.9% 90%;
-    --input: 20 5.9% 90%;
-    --ring: 20 14.3% 4.1%;
+    --popover-foreground: 160 10% 10%;
+    --primary: 158 85% 40%; /* Vibrant Supabase green */
+    --primary-foreground: 0 0% 100%; /* Pure white for contrast */
+    --secondary: 152 14% 90%; /* Light mint green */
+    --secondary-foreground: 160 10% 10%;
+    --muted: 152 14% 90%;
+    --muted-foreground: 160 10% 40%; /* Muted olive green */
+    --accent: 158 85% 40%; /* Same green as primary */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 65% 55%; /* Light red for warnings */
+    --destructive-foreground: 0 0% 100%;
+    --border: 160 10% 85%; /* Light grey-green border */
+    --input: 160 10% 85%;
+    --ring: 158 85% 50%; /* Slightly lighter green ring */
     --radius: 0.5rem;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    --chart-1: 158 85% 40%; /* Green for primary chart */
+    --chart-2: 160 20% 45%; /* Subdued green for charts */
+    --chart-3: 160 10% 30%; /* Darker forest green */
+    --chart-4: 154 60% 50%; /* Light pastel green */
+    --chart-5: 160 10% 85%; /* Very light green for background */
   }
 
   .dark {
-    --background: 20 14.3% 4.1%;
-    --foreground: 60 9.1% 97.8%;
-    --card: 20 14.3% 4.1%;
-    --card-foreground: 60 9.1% 97.8%;
-    --popover: 20 14.3% 4.1%;
-    --popover-foreground: 60 9.1% 97.8%;
-    --primary: 60 9.1% 97.8%;
-    --primary-foreground: 24 9.8% 10%;
-    --secondary: 12 6.5% 15.1%;
-    --secondary-foreground: 60 9.1% 97.8%;
-    --muted: 12 6.5% 15.1%;
-    --muted-foreground: 24 5.4% 63.9%;
-    --accent: 12 6.5% 15.1%;
-    --accent-foreground: 60 9.1% 97.8%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 60 9.1% 97.8%;
-    --border: 12 6.5% 15.1%;
-    --input: 12 6.5% 15.1%;
-    --ring: 24 5.7% 82.9%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --background: 160 10% 5%; /* Very dark greenish-grey */
+    --foreground: 0 0% 100%; /* Bright white */
+    --card: 160 10% 8%; /* Slightly lighter dark green */
+    --card-foreground: 0 0% 100%;
+    --popover: 160 10% 8%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 158 85% 50%; /* Bright green for dark mode */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 160 10% 15%; /* Dark muted green */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 160 10% 15%;
+    --muted-foreground: 160 10% 75%; /* Light grey-green */
+    --accent: 158 85% 50%; /* Bright green accent */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 65% 50%; /* Soft red for alerts */
+    --destructive-foreground: 0 0% 100%;
+    --border: 160 10% 15%; /* Dark green border */
+    --input: 160 10% 15%;
+    --ring: 158 85% 60%; /* Vibrant green ring */
+    --chart-1: 158 85% 50%; /* Main green for charts */
+    --chart-2: 160 20% 45%; /* Subdued green for contrast */
+    --chart-3: 160 10% 30%; /* Deep forest green */
+    --chart-4: 154 60% 50%; /* Light green accent */
+    --chart-5: 160 10% 85%; /* Soft background green */
   }
 }
 
@@ -85,7 +86,7 @@ pre {
   overflow-x: auto;
 }
 
-pre>code {
+pre > code {
   display: grid;
   max-width: inherit !important;
   padding: 14px 0 !important;
@@ -115,6 +116,6 @@ pre>code {
   @apply px-2 -mb-8 w-full text-sm pb-5 font-medium mt-5 font-code;
 }
 
-.highlight-comp>code {
+.highlight-comp > code {
   background-color: transparent !important;
 }
