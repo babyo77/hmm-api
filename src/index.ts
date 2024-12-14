@@ -1,4 +1,4 @@
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T> {
   success: boolean;
   status: number;
   data?: T;
@@ -62,7 +62,7 @@ class ApiClient {
   private async handleResponse<T>(
     response: Response,
     showErrorToast: boolean
-  ): Promise<ApiResponse> {
+  ): Promise<ApiResponse<T>> {
     const isJsonResponse = response.headers
       .get("content-type")
       ?.includes("application/json");
@@ -127,7 +127,7 @@ class ApiClient {
       headers?: Record<string, string>;
       finally?: () => void; // Callback to run after success or failure
     } = {}
-  ): Promise<ApiResponse> {
+  ): Promise<ApiResponse<T>> {
     const {
       showErrorToast = this.showGlobalToast,
       finally: finallyCallback,
@@ -192,7 +192,7 @@ class ApiClient {
       headers?: Record<string, string>;
       finally?: () => void;
     } = {}
-  ): Promise<ApiResponse> {
+  ): Promise<ApiResponse<T>> {
     return this.request<T>(url, "GET", options);
   }
 
@@ -204,7 +204,7 @@ class ApiClient {
       headers?: Record<string, string>;
       finally?: () => void;
     } = {}
-  ): Promise<ApiResponse> {
+  ): Promise<ApiResponse<T>> {
     return this.request<T>(url, "POST", {
       ...options,
       body: data,
@@ -219,7 +219,7 @@ class ApiClient {
       headers?: Record<string, string>;
       finally?: () => void;
     } = {}
-  ): Promise<ApiResponse> {
+  ): Promise<ApiResponse<T>> {
     return this.request<T>(url, "PUT", {
       ...options,
       body: data,
@@ -234,7 +234,7 @@ class ApiClient {
       headers?: Record<string, string>;
       finally?: () => void;
     } = {}
-  ): Promise<ApiResponse> {
+  ): Promise<ApiResponse<T>> {
     return this.request<T>(url, "PATCH", {
       ...options,
       body: data,
@@ -248,7 +248,7 @@ class ApiClient {
       headers?: Record<string, string>;
       finally?: () => void;
     } = {}
-  ): Promise<ApiResponse> {
+  ): Promise<ApiResponse<T>> {
     return this.request<T>(url, "DELETE", options);
   }
 }
