@@ -20,10 +20,10 @@ const GeistMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "hmm-api - Template",
-  metadataBase: new URL("https://hmm-api.vercel.app/"),
-  description:
-    "This comprehensive documentation template, crafted with Next.js and available as open-source, delivers a sleek and responsive design, tailored to meet all your project documentation requirements.",
+  title: "hmm-api - Docs",
+  metadataBase: new URL("https://hmm-api.vercel.app"),
+  description: `⚡️ Effortless API Calls 🌐 with Smart Error Handling ⚠️ & Toast
+        Notifications 🍞 - Simple & Reliable 🚀`,
 };
 
 export default function RootLayout({
