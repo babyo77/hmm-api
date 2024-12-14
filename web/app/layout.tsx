@@ -22,8 +22,8 @@ const GeistMono = Space_Mono({
 export const metadata: Metadata = {
   title: "hmm-api",
   metadataBase: new URL("https://hmm-api.vercel.app"),
-  description: `⚡️ Effortless API Calls 🌐 with Smart Error Handling ⚠️ & Toast
-        Notifications 🍞 - Simple & Reliable 🚀`,
+  description:
+    "Build Faster with Swift API Calls ⚡️, Auto Error Handling ⚠️, and Toasts 🍞",
 };
 
 export default function RootLayout({
