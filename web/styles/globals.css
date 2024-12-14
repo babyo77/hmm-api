@@ -46,13 +46,13 @@
     --popover: 160 10% 8%;
     --popover-foreground: 0 0% 100%;
     --primary: 158 85% 50%; /* Bright green for dark mode */
-    --primary-foreground: 0 0% 100%;
+    --primary-foreground: 0 0% 10%;
     --secondary: 160 10% 15%; /* Dark muted green */
     --secondary-foreground: 0 0% 100%;
     --muted: 160 10% 15%;
     --muted-foreground: 160 10% 75%; /* Light grey-green */
     --accent: 158 85% 50%; /* Bright green accent */
-    --accent-foreground: 0 0% 100%;
+    --accent-foreground: 0 0% 10%;
     --destructive: 0 65% 50%; /* Soft red for alerts */
     --destructive-foreground: 0 0% 100%;
     --border: 160 10% 15%; /* Dark green border */
