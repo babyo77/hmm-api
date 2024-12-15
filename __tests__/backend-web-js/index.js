@@ -127,6 +127,7 @@ class ApiServer {
         title: "Product Limit Exceeded",
         desc: "You can only add up to 3 products.",
         error: "Product limit exceeded",
+        showErrorToast: true,
       });
     }
 
