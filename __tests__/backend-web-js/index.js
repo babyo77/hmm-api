@@ -213,5 +213,3 @@ class ApiServer {
 // Create and start the server
 const server = new ApiServer();
 server.start();
-
-module.exports = server;
