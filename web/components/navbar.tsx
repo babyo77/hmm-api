@@ -17,6 +17,10 @@ export const NAVLINKS = [
     title: "Install",
     href: "https://www.npmjs.com/package/hmm-api",
   },
+  {
+    title: "Playground",
+    href: "https://hmm-api-7o9y.vercel.app",
+  },
 ];
 
 export function Navbar() {
