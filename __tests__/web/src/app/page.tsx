@@ -9,6 +9,7 @@ import {
   Server,
   Shield,
 } from "lucide-react";
+import Image from "next/image";
 
 // Interfaces for different API responses
 interface User {
@@ -105,7 +106,9 @@ export default function HmmApiShowcase() {
               <div className="animate-pulse">Loading user data...</div>
             ) : user ? (
               <div className="flex items-center">
-                <img
+                <Image
+                  height={500}
+                  width={500}
                   src={user.avatar}
                   alt={user.name}
                   className="w-16 h-16 rounded-full mr-4"
