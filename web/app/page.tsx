@@ -33,6 +33,16 @@ export default function Home() {
         >
           Get Started
         </Link>
+        <Link
+          href={`https://hmm-api-7o9y.vercel.app`}
+          className={buttonVariants({
+            className: "px-6",
+            variant: "outline",
+            size: "lg",
+          })}
+        >
+          Playground
+        </Link>
       </div>
       <button
         onClick={copyToClipboard}
