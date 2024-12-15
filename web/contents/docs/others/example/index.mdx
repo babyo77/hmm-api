@@ -1,1 +1,40 @@
-### Coming soon
+# Examples using hmm-api (frontend)
+
+### 1. Using shadcn toast
+
+```typescript
+import { toast } from "@/hooks/use-toast"; // import shadcn toast
+import ApiClient from "hmm-api"; // import hmm-api
+export const api = new ApiClient({
+  showGlobalToast: false,
+  parseErrorResponse: (err) => {
+    // parse err according to your err response from server
+    toast({
+      variant: "destructive",
+      title: err?.error?.title || "Fetch failed",
+      description: err?.error?.desc || "Page not found",
+    });
+    return;
+  },
+});
+```
+
+### 2. Using sonner and react roast
+
+```typescript
+import ApiClient from "hmm-api"; // import hmm-api
+import { toast } from "sonner"; // import sonner
+export const api = new ApiClient({
+  toast,
+  parseErrorResponse: (err) => {
+    // parse err according to your err response from server
+    return err?.message || "something went wrong";
+  },
+});
+```
+
+3. Others
+
+```typescript
+coming soon  // (you can also contribute or provide feedback)
+```

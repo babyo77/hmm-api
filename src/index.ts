@@ -10,7 +10,7 @@ interface ApiClientConfig {
   toast?: any;
   globalHeaders?: Record<string, string>;
   showGlobalToast?: boolean;
-  parseErrorResponse?: (error: any) => string; // Custom error parsing function
+  parseErrorResponse?: (error: any) => any; // Custom error parsing function
   credentials?: RequestCredentials; // Global credentials setting (e.g., 'include', 'same-origin')
 }
 
@@ -67,17 +67,6 @@ class ApiClient {
       .get("content-type")
       ?.includes("application/json");
 
-    if (response.status === 404) {
-      if (showErrorToast) {
-        this.toast.error("Not Found");
-      }
-      return {
-        success: false,
-        status: response.status,
-        error: "Page not found",
-      };
-    }
-
     if (!response.ok) {
       const error = isJsonResponse
         ? await response.json()
@@ -133,6 +122,7 @@ class ApiClient {
     } = options;
 
     if (!this.toast && showErrorToast) {
+      console.error("toast not configured");
       return {
         success: false,
         status: 0,
@@ -141,6 +131,9 @@ class ApiClient {
     }
 
     if (showErrorToast && this.isNodeEnvironment) {
+      console.warn(
+        "Toasts are not usable in Node.js environment, turn it false"
+      );
       // Disable toasts in Node.js environment
       return {
         success: false,
