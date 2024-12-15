@@ -20,7 +20,7 @@ export const api = new ApiClient({
       title: err?.title || "Fetch failed",
       description: err?.desc || "Page not found",
     });
-    return;
+    return err;
   },
 });
 ```
