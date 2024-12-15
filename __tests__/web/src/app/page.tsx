@@ -15,6 +15,7 @@ import Image from "next/image";
 import { toast } from "@/hooks/use-toast"; // import shadcn toast
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism";
+import Link from "next/link";
 
 interface User {
   id: number;
@@ -125,7 +126,13 @@ export default function HmmApiShowcase() {
       <div className="max-w-6xl mx-auto">
         <header className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-800 mb-4">
-            hmm-api Showcase
+            <Link
+              href={"https://hmm-api.vercel.app"}
+              className="text-blue-600 max-w-2xl mx-auto text-center"
+            >
+              hmm-api
+            </Link>{" "}
+            Showcase
           </h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
             A powerful, flexible API client for modern web applications
