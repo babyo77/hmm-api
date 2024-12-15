@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import React, { useState, useEffect } from "react";
@@ -12,8 +13,9 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { toast } from "@/hooks/use-toast"; // import shadcn toast
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism";
 
-// Interfaces for different API responses
 interface User {
   id: number;
   name: string;
@@ -36,7 +38,7 @@ export default function HmmApiShowcase() {
     user: true,
     products: true,
   });
-
+  const [err, setError] = useState<any>(null);
   // Fetch user data
   const fetchUser = async () => {
     setLoading((prev) => ({ ...prev, user: true }));
@@ -77,6 +79,9 @@ export default function HmmApiShowcase() {
 
     if (response.success) {
       fetchProducts(); // Refresh product list
+    }
+    if (response.error) {
+      setError(response.error);
     }
   };
 
@@ -187,6 +192,8 @@ export default function HmmApiShowcase() {
           </div>
         </div>
 
+        <CodeShowcase err={err} />
+
         {/* Features Section */}
         <div className="mt-12 bg-white shadow-lg rounded-lg p-8">
           <h2 className="text-3xl font-bold text-center mb-8">Key Features</h2>
@@ -222,3 +229,114 @@ export default function HmmApiShowcase() {
     </div>
   );
 }
+
+const CodeShowcase = ({ err }: { err: string }) => {
+  return (
+    <div>
+      <div className="mt-12 bg-gray-100 rounded-lg p-6">
+        <h2 className="text-2xl font-bold mb-4 text-center">
+          Error Response from server
+        </h2>
+        <SyntaxHighlighter
+          language="json"
+          wrapLines
+          wrapLongLines
+          style={dracula}
+          className="rounded"
+        >
+          {JSON.stringify(err, null, 2)}
+        </SyntaxHighlighter>
+      </div>
+
+      <div className="mt-12 bg-gray-100 rounded-lg p-6">
+        <h2 className="text-2xl font-bold mb-4 text-center">
+          Hmm-api Configuration
+        </h2>
+        <SyntaxHighlighter
+          language="javascript"
+          style={dracula}
+          className="rounded"
+        >
+          {`import { toast } from "@/hooks/use-toast"; // import shadcn toast
+import ApiClient from "hmm-api"; // import hmm-api
+export const api = new ApiClient({
+  baseUrl: "${process.env.BACKEND_URL}",
+  showGlobalToast: false,
+  parseErrorResponse: (err) => {
+    toast({
+      variant: "destructive",
+      title: err?.title || "Fetch failed",
+      description: err?.desc || "Page not found",
+    });
+    return err;
+  },
+});`}
+        </SyntaxHighlighter>
+      </div>
+
+      <div className="mt-12 bg-gray-100 rounded-lg p-6">
+        <h2 className="text-2xl font-bold mb-4 text-center">
+          Add Product Function using hmm-api
+        </h2>
+        <SyntaxHighlighter
+          language="typescript"
+          style={dracula}
+          className="rounded"
+        >
+          {`const createProduct = async () => {
+    const newProduct = {
+      name: "New Tech Gadget",
+      price: 299.99,
+      description: "Cutting-edge innovation",
+    };
+
+    const response = await api.post<Product>("/products", newProduct);
+
+    if (response.success) {
+      fetchProducts(); // Refresh product list
+    }
+  };`}
+        </SyntaxHighlighter>
+      </div>
+      <div className="mt-12 bg-gray-100 rounded-lg p-6">
+        <h2 className="text-2xl font-bold mb-4 text-center">
+          Add Product Function using fetch
+        </h2>
+        <SyntaxHighlighter
+          language="javascript"
+          style={dracula}
+          className="rounded"
+        >
+          {`const createProduct = async () => {
+    const newProduct = {
+      name: "New Tech Gadget",
+      price: 299.99,
+      description: "Cutting-edge innovation",
+    };
+
+    const response = await fetch("${process.env.BACKEND_URL}/products", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(newProduct),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      fetchProducts(); // Refresh product list after successful creation
+    } else {
+      toast({
+        variant: "destructive",
+        title: data.title,
+        description:
+          data?.desc || "Something went wrong. Please try again later.",
+      });
+    }
+  };`}
+        </SyntaxHighlighter>
+      </div>
+    </div>
+  );
+};

@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "hmm-api",
+  title: "hmm-api playground",
   description: "hmm-api",
 };
 
