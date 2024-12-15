@@ -3,9 +3,6 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const { v4: uuidv4 } = require("uuid");
 
-// User and Product Interfaces
-// In JavaScript, we don't use TypeScript interfaces, so we skip them
-
 class ApiServer {
   constructor() {
     this.app = express();
