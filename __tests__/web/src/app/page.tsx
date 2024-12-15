@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import React, { useState, useEffect } from "react";
 import { api } from "../../lib/api";
@@ -10,6 +11,7 @@ import {
   Shield,
 } from "lucide-react";
 import Image from "next/image";
+import { toast } from "@/hooks/use-toast"; // import shadcn toast
 
 // Interfaces for different API responses
 interface User {
@@ -63,7 +65,7 @@ export default function HmmApiShowcase() {
     }
   };
 
-  // Create a new product
+  // Create a new product using hmm-api
   const createProduct = async () => {
     const newProduct = {
       name: "New Tech Gadget",
@@ -75,6 +77,36 @@ export default function HmmApiShowcase() {
 
     if (response.success) {
       fetchProducts(); // Refresh product list
+    }
+  };
+
+  // Create a new product using fetch
+  const normalCreateProduct = async () => {
+    const newProduct = {
+      name: "New Tech Gadget",
+      price: 299.99,
+      description: "Cutting-edge innovation",
+    };
+
+    const response = await fetch("http://localhost:4000/products", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(newProduct),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      fetchProducts(); // Refresh product list after successful creation
+    } else {
+      toast({
+        variant: "destructive",
+        title: data.title,
+        description:
+          data?.desc || "Something went wrong. Please try again later.",
+      });
     }
   };
 
