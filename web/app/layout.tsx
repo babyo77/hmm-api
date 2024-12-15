@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   title: "hmm-api",
   metadataBase: new URL("https://hmm-api.vercel.app"),
   description:
-    "Build Faster with Swift API Calls ⚡️, Auto Error Handling ⚠️, and Toasts 🍞",
+    "Tired of manually handling errors and showing toast notifications for every API call?",
 };
 
 export default function RootLayout({

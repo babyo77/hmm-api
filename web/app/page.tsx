@@ -20,11 +20,11 @@ export default function Home() {
   return (
     <div className="flex sm:min-h-[85.5vh] min-h-[85vh] flex-col items-center justify-center text-center px-2 sm:py-8 py-12">
       <h1 className="text-3xl font-bold mb-4 sm:text-6xl">
-        Build Faster with Swift API Calls ⚡️ Auto Error Handling ⚠️ and Toasts
-        🍞
+        Tired of manually handling errors and showing toast notifications for
+        every API call?
       </h1>
       <p className="mb-8 sm:text-xl max-w-[800px] text-muted-foreground">
-        Write less, debug less, and focus on what matters!
+        Write less, and focus on what matters!
       </p>
       <div className="flex flex-row items-center gap-5">
         <Link
