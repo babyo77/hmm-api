@@ -14,7 +14,7 @@ export function Footer() {
               className="px-1 underline underline-offset-2"
               href="https://tanmayo7.vercel.app"
             >
-              babyo7_
+              tanmay7_
             </Link>
             . The source code is available on{" "}
             <Link
