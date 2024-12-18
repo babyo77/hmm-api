@@ -154,7 +154,7 @@ class ApiClient {
       }
 
       if (this.authToken && !headers.has("Authorization")) {
-        headers.set("Authorization", `Bearer ${this.authToken}`);
+        headers.set("Authorization", `${this.authToken}`);
       }
 
       const fullUrl = this.baseUrl ? `${this.baseUrl}${url}` : url;
