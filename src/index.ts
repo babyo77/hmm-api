@@ -3,7 +3,7 @@ export interface ApiResponse<T> {
   status: number;
   data?: T;
   response?: Response;
-  error?: string;
+  error?: any;
 }
 type GlobalMessage = {
   message: string;
@@ -16,6 +16,7 @@ type ParseErrorResponse = (error: any) => GlobalMessage;
 interface ApiClientConfig {
   baseUrl?: string | null; // Optional base URL
   toast?: any;
+  returnParsedError?: boolean;
   globalHeaders?: Record<string, string>;
   showGlobalErrorToast?: boolean;
   showGlobalSuccessToast?: boolean; // New global success toast setting
@@ -35,6 +36,7 @@ class ApiClient {
   private parseErrorResponse: ParseSuccessResponse;
   private parseSuccessResponse: ParseErrorResponse;
   private credentials: RequestCredentials;
+  private returnParsedError: boolean;
 
   constructor({
     baseUrl = null,
@@ -54,9 +56,11 @@ class ApiClient {
       return { message: "Request succeeded" };
     },
     credentials = "same-origin", // Default credentials setting
+    returnParsedError = false,
   }: ApiClientConfig = {}) {
     this.baseUrl = baseUrl;
     this.toast = toast;
+    this.returnParsedError = returnParsedError;
     this.globalHeaders = globalHeaders;
     this.showGlobalErrorToast = showGlobalErrorToast;
     this.showGlobalSuccessToast = showGlobalSuccessToast;
@@ -117,7 +121,9 @@ class ApiClient {
         success: false,
         response,
         status: response.status,
-        error: errorMessage?.message || "An unexpected error occurred",
+        error: this.returnParsedError
+          ? errorMessage?.message || "An unexpected error occurred"
+          : error,
       };
     }
 
@@ -163,7 +169,9 @@ class ApiClient {
     return {
       success: false,
       status: 0, // Indicate that this is a client-side error without a response status
-      error: errorMessage?.message || "An unexpected error occurred",
+      error: this.returnParsedError
+        ? errorMessage?.message || "An unexpected error occurred"
+        : error,
     };
   }
 
