@@ -3,7 +3,7 @@ export interface ApiResponse<T> {
   status: number;
   data?: T;
   response?: Response;
-  error?: any;
+  error?: string;
 }
 type GlobalMessage = {
   message: string;
@@ -117,7 +117,7 @@ class ApiClient {
         success: false,
         response,
         status: response.status,
-        error: error,
+        error: errorMessage?.message || "An unexpected error occurred",
       };
     }
 
@@ -163,7 +163,7 @@ class ApiClient {
     return {
       success: false,
       status: 0, // Indicate that this is a client-side error without a response status
-      error: error,
+      error: errorMessage?.message || "An unexpected error occurred",
     };
   }
 
