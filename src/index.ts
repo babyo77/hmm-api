@@ -2,15 +2,25 @@ export interface ApiResponse<T> {
   success: boolean;
   status: number;
   data?: T;
-  error?: string;
+  response?: Response;
+  error?: any;
 }
+type GlobalMessage = {
+  message: string;
+  title?: string;
+};
+
+type ParseSuccessResponse = (response: any) => GlobalMessage;
+type ParseErrorResponse = (error: any) => GlobalMessage;
 
 interface ApiClientConfig {
   baseUrl?: string | null; // Optional base URL
   toast?: any;
   globalHeaders?: Record<string, string>;
-  showGlobalToast?: boolean;
-  parseErrorResponse?: (error: any) => any; // Custom error parsing function
+  showGlobalErrorToast?: boolean;
+  showGlobalSuccessToast?: boolean; // New global success toast setting
+  parseErrorResponse?: ParseSuccessResponse; // Custom error parsing function
+  parseSuccessResponse?: ParseErrorResponse; // Custom success parsing function
   credentials?: RequestCredentials; // Global credentials setting (e.g., 'include', 'same-origin')
 }
 
@@ -18,31 +28,41 @@ class ApiClient {
   private baseUrl: string | null = null;
   private authToken: string | null = null;
   private globalHeaders: Record<string, string> = {};
-  private showGlobalToast: boolean = true;
+  private showGlobalErrorToast: boolean = true;
+  private showGlobalSuccessToast: boolean = false; // Default to false
   private toast: any;
   private isNodeEnvironment: boolean;
-  private parseErrorResponse: (error: any) => string;
+  private parseErrorResponse: ParseSuccessResponse;
+  private parseSuccessResponse: ParseErrorResponse;
   private credentials: RequestCredentials;
 
   constructor({
     baseUrl = null,
     toast = null,
     globalHeaders = {},
-    showGlobalToast = true,
+    showGlobalErrorToast = typeof window !== "undefined",
+    showGlobalSuccessToast = false,
     parseErrorResponse = (error) => {
-      if (typeof error === "string") return error;
-      if (error.message) return error.message;
-      if (error.error?.message) return error.error.message;
-      return "An unexpected error occurred";
+      if (typeof error === "string") return { message: error };
+      if (error.message) return { message: error.message };
+      if (error.error?.message) return { message: error.error.message };
+      return { message: "An unexpected error occurred" };
+    },
+    parseSuccessResponse = (response) => {
+      if (typeof response === "string") return { message: response };
+      if (response.message) return { message: response.message };
+      return { message: "Request succeeded" };
     },
     credentials = "same-origin", // Default credentials setting
   }: ApiClientConfig = {}) {
     this.baseUrl = baseUrl;
     this.toast = toast;
     this.globalHeaders = globalHeaders;
-    this.showGlobalToast = showGlobalToast;
+    this.showGlobalErrorToast = showGlobalErrorToast;
+    this.showGlobalSuccessToast = showGlobalSuccessToast;
     this.isNodeEnvironment = typeof window === "undefined";
     this.parseErrorResponse = parseErrorResponse;
+    this.parseSuccessResponse = parseSuccessResponse;
     this.credentials = credentials;
     console.log("using hmm-api by tanmay7_");
   }
@@ -55,13 +75,18 @@ class ApiClient {
     this.globalHeaders = { ...this.globalHeaders, ...headers };
   }
 
-  setShowGlobalToast(show: boolean): void {
-    this.showGlobalToast = show;
+  setShowGlobalErrorToast(show: boolean): void {
+    this.showGlobalErrorToast = show;
+  }
+
+  setShowGlobalSuccessToast(show: boolean): void {
+    this.showGlobalSuccessToast = show;
   }
 
   private async handleResponse<T>(
     response: Response,
-    showErrorToast: boolean
+    showErrorToast: boolean,
+    showSuccessToast: boolean
   ): Promise<ApiResponse<T>> {
     const isJsonResponse = response.headers
       .get("content-type")
@@ -74,21 +99,47 @@ class ApiClient {
       const errorMessage = this.parseErrorResponse(error);
 
       if (showErrorToast) {
-        this.toast.error(errorMessage);
+        if (this.toast?.error) {
+          this.toast.error(
+            errorMessage?.message || "An unexpected error occurred"
+          );
+        } else {
+          this.toast?.({
+            variant: "destructive",
+            title: errorMessage?.title || "Error",
+            description:
+              errorMessage?.message || "An unexpected error occurred",
+          });
+        }
       }
 
       return {
         success: false,
+        response,
         status: response.status,
-        error: errorMessage,
+        error: error,
       };
     }
 
     const data = isJsonResponse ? await response.json() : await response.text();
 
+    if (showSuccessToast) {
+      const successMessage = this.parseSuccessResponse(data);
+      if (this.toast?.success) {
+        this.toast.success(successMessage?.message || "Request succeeded");
+      } else {
+        this.toast?.({
+          variant: "default",
+          title: successMessage?.title || "Success",
+          description: successMessage?.message || "Request succeeded",
+        });
+      }
+    }
+
     return {
       success: true,
       status: response.status,
+      response,
       data,
     };
   }
@@ -96,13 +147,23 @@ class ApiClient {
   private handleError(error: any, showErrorToast: boolean): ApiResponse<never> {
     const errorMessage = this.parseErrorResponse(error);
     if (error.name !== "AbortError" && showErrorToast) {
-      this.toast.error(errorMessage);
+      if (this.toast?.error) {
+        this.toast.error(
+          errorMessage?.message || "An unexpected error occurred"
+        );
+      } else {
+        this.toast?.({
+          variant: "destructive",
+          title: errorMessage?.title || "Error",
+          description: errorMessage?.message || "An unexpected error occurred",
+        });
+      }
     }
 
     return {
       success: false,
       status: 0, // Indicate that this is a client-side error without a response status
-      error: error.name === "AbortError" ? "" : errorMessage,
+      error: error,
     };
   }
 
@@ -111,18 +172,20 @@ class ApiClient {
     method: string,
     options: RequestInit & {
       showErrorToast?: boolean;
+      showSuccessToast?: boolean;
       headers?: Record<string, string>;
       finally?: () => void; // Callback to run after success or failure
     } = {}
   ): Promise<ApiResponse<T>> {
     const {
-      showErrorToast = this.showGlobalToast,
+      showErrorToast = this.showGlobalErrorToast,
+      showSuccessToast = this.showGlobalSuccessToast,
       finally: finallyCallback,
       ...fetchOptions
     } = options;
 
-    if (!this.toast && showErrorToast) {
-      console.error("toast not configured");
+    if (!this.toast && (showErrorToast || showSuccessToast)) {
+      console.error("Toast not configured");
       return {
         success: false,
         status: 0,
@@ -130,7 +193,7 @@ class ApiClient {
       };
     }
 
-    if (showErrorToast && this.isNodeEnvironment) {
+    if ((showErrorToast || showSuccessToast) && this.isNodeEnvironment) {
       console.warn(
         "Toasts are not usable in Node.js environment, turn it false"
       );
@@ -166,7 +229,11 @@ class ApiClient {
         credentials: this.credentials, // Include credentials setting in the request
       });
 
-      const result = await this.handleResponse<T>(response, showErrorToast);
+      const result = await this.handleResponse<T>(
+        response,
+        showErrorToast,
+        showSuccessToast
+      );
       finallyCallback?.(); // Execute finally callback
       return result;
     } catch (error: any) {
@@ -180,6 +247,7 @@ class ApiClient {
     url: string,
     options: RequestInit & {
       showErrorToast?: boolean;
+      showSuccessToast?: boolean;
       headers?: Record<string, string>;
       finally?: () => void;
     } = {}
@@ -192,6 +260,7 @@ class ApiClient {
     data: any,
     options: RequestInit & {
       showErrorToast?: boolean;
+      showSuccessToast?: boolean;
       headers?: Record<string, string>;
       finally?: () => void;
     } = {}
@@ -207,6 +276,7 @@ class ApiClient {
     data: any,
     options: RequestInit & {
       showErrorToast?: boolean;
+      showSuccessToast?: boolean;
       headers?: Record<string, string>;
       finally?: () => void;
     } = {}
@@ -222,6 +292,7 @@ class ApiClient {
     data: any,
     options: RequestInit & {
       showErrorToast?: boolean;
+      showSuccessToast?: boolean;
       headers?: Record<string, string>;
       finally?: () => void;
     } = {}
@@ -236,6 +307,7 @@ class ApiClient {
     url: string,
     options: RequestInit & {
       showErrorToast?: boolean;
+      showSuccessToast?: boolean;
       headers?: Record<string, string>;
       finally?: () => void;
     } = {}

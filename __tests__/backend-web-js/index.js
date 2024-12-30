@@ -124,7 +124,6 @@ class ApiServer {
         title: "Product Limit Exceeded",
         desc: "You can only add up to 3 products.",
         error: "Product limit exceeded",
-        showErrorToast: true,
       });
     }
 
@@ -141,6 +140,7 @@ class ApiServer {
       name,
       price,
       description: description || "",
+      message: "Product created successfully",
     };
 
     this.products.push(newProduct);

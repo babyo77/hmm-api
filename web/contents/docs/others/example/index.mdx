@@ -1,40 +1,15 @@
 # Examples using hmm-api (frontend)
 
-### 1. Using shadcn toast
-
-```typescript
-import { toast } from "@/hooks/use-toast"; // import shadcn toast
-import ApiClient from "hmm-api"; // import hmm-api
-export const api = new ApiClient({
-  showGlobalToast: false,
-  parseErrorResponse: (err) => {
-    //  here backend error look like this {
-    //   title: "Product Limit Exceeded",
-    //   desc: "You can only add up to 3 products.",
-    //   error: "Product limit exceeded",
-    //   showErrorToast: true,
-    // } parse err according to your err response from server
-
-    toast({
-      variant: "destructive",
-      title: err?.title || "Fetch failed",
-      description: err?.desc || "Page not found",
-    });
-    return err;
-  },
-});
-```
-
-### 2. Using sonner and react roast
+### 1. Using sonner, shadcn
 
 ```typescript
 import ApiClient from "hmm-api"; // import hmm-api
-import { toast } from "sonner"; // import sonner
+import { toast } from "sonner" or import { toast } from "@/hooks/use-toast";; // import toast
 export const api = new ApiClient({
   toast,
   parseErrorResponse: (err) => {
     // parse err according to your err response from server
-    return err?.message || "something went wrong";
+    return { message: err?.message || "something went wrong" };
   },
 });
 ```

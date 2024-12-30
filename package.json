@@ -1,6 +1,6 @@
 {
   "name": "hmm-api",
-  "version": "1.0.87",
+  "version": "1.0.97",
   "description": "Write less, debug less, and focus on what matters!",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -23,10 +23,7 @@
     "react",
     "next-js"
   ],
-  "repository": {
-    "type": "website",
-    "url": "https://hmm-api.vercel.app"
-  },
+  "homepage": "https://hmm-api.vercel.app",
   "author": "tanmay",
   "license": "ISC",
   "devDependencies": {

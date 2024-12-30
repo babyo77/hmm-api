@@ -76,7 +76,9 @@ export default function HmmApiShowcase() {
       description: "Cutting-edge innovation",
     };
 
-    const response = await api.post<Product>("/products", newProduct);
+    const response = await api.post<Product>("/products", newProduct, {
+      showSuccessToast: true,
+    });
 
     if (response.success) {
       fetchProducts(); // Refresh product list

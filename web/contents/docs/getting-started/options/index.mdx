@@ -38,16 +38,25 @@ Here's a breakdown of the configuration options available in `hmm-api`:
   });
   ```
 
-### 4. showGlobalToast
+### 4. showGlobalErrorToast
 
 - **Default:** `true`
 - **Purpose:** Controls global toast display.
 - **Example:**
   ```javascript
-  const apiClient = new ApiClient({ showGlobalToast: false });
+  const apiClient = new ApiClient({ showGlobalErrorToast: true });
   ```
 
-### 5. parseErrorResponse
+### 5. showGlobalSuccessToast
+
+- **Default:** `false`
+- **Purpose:** Controls global toast display.
+- **Example:**
+  ```javascript
+  const apiClient = new ApiClient({ showGlobalSuccessToast: true });
+  ```
+
+### 6. parseErrorResponse
 
 - **Default:** Default parser
 - **Purpose:** Customizes error message parsing.
@@ -55,16 +64,32 @@ Here's a breakdown of the configuration options available in `hmm-api`:
   ```javascript
   const apiClient = new ApiClient({
     parseErrorResponse: (error) => {
-      // Custom error parsing logic
-      if (typeof error === "string") return error;
-      if (error.message) return error.message;
-      if (error.error?.message) return error.error.message;
-      return "An unexpected error occurred";
+      // default error parsing logic
+      if (typeof error === "string") return { message: error };
+      if (error.message) return { message: error.message };
+      if (error.error?.message) return { message: error.error.message };
+      return { message: "An unexpected error occurred" };
     },
   });
   ```
 
-### 6. credentials
+### 7. parseErrorResponse
+
+- **Default:** Default parser
+- **Purpose:** Customizes error message parsing.
+- **Example:**
+  ```javascript
+  const apiClient = new ApiClient({
+    parseErrorResponse: (response) => {
+      // default error parsing logic
+      if (typeof response === "string") return { message: response };
+      if (response.message) return { message: response.message };
+      return { message: "Request succeeded" };
+    },
+  });
+  ```
+
+### 8. credentials
 
 - **Default:** `same-origin`
 - **Purpose:** Controls credential handling.

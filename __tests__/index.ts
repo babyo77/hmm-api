@@ -2,7 +2,6 @@ import ApiClient from "../src/index";
 
 const api = new ApiClient({
   baseUrl: "https://music-player-api-mu.vercel.app",
-  showGlobalToast: false,
   credentials: "include",
   parseErrorResponse: (error) => {
     if (typeof error === "object") {
