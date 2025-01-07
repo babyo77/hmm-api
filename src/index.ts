@@ -233,8 +233,8 @@ class ApiClient {
       const response = await fetch(fullUrl, {
         method,
         credentials: this.credentials, // Include credentials setting in the request
-        headers,
         ...fetchOptions,
+        headers,
       });
 
       const result = await this.handleResponse<T>(
