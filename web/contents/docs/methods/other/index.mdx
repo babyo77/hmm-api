@@ -45,7 +45,7 @@ const api = new ApiClient({
     if (error.details) {
       return error.details.message;
     }
-    return "An unexpected error occurred";
+   return { message: "An unexpected error occurred" };
   },
 });
 ```
