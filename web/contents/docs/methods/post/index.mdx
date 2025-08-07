@@ -1,155 +1,296 @@
-# Using POST Method in hmm-api
+# POST Method - Global Error Handling
 
-## Basic Usage
+## Why Use Global Error Handling?
 
-### 1. Import and Create API Client
+Configure error handling once globally instead of repeating it in every POST request. Perfect for forms, user creation, and data submission.
 
-```typescript
-import ApiClient from "hmm-api";
-
-// Create an API client
-const api = new ApiClient();
-```
-
-### 2. Simple POST Request
+## Complete Example
 
 ```typescript
-// Create a new user
-const newUser = {
-  name: "John Doe",
-  email: "john@example.com",
-};
+import ApiClient, { parseResponseMessage } from "hmm-api";
+import { toast } from "sonner";
 
-const response = await api.post("/users", newUser);
+// Configure once - handles ALL POST requests
+const api = new ApiClient({
+  baseUrl: "https://api.example.com",
+  returnParsedError: true, // Get clean validation messages
+  onError: (response) => {
+    // Handle ALL form errors globally
+    toast.error(response.error);
 
-// Check if request was successful
-if (response.success) {
-  // Access the created user data
-  const createdUser = response.data;
-  console.log(createdUser);
-} else {
-  // Handle any errors
-  console.error(response.error);
-}
-```
+    // Global validation error handling
+    if (response.status === 422) {
+      console.log("Validation failed:", response.error);
+    }
 
-## Advanced Usage
+    if (response.status === 401) {
+      redirectToLogin();
+    }
+  },
+  onSuccess: (response) => {
+    // Optional: Global success handling
+    toast.success("Saved successfully!");
+  },
+});
 
-### With Type Safety
-
-```typescript
-// Define interfaces for request and response
+// Usage - No error handling needed!
 interface CreateUserRequest {
   name: string;
   email: string;
 }
 
-interface CreateUserResponse {
+interface User {
   id: number;
   name: string;
   email: string;
 }
 
-// Typed POST request
-const userData: CreateUserRequest = {
-  name: "Jane Doe",
-  email: "jane@example.com",
-};
+const UserForm = () => {
+  const [loading, setLoading] = useState(false);
 
-const response = await api.post<CreateUserResponse>("/users", userData);
+  const createUser = async (userData: CreateUserRequest) => {
+    setLoading(true);
 
-if (response.success) {
-  // TypeScript knows the exact shape of the response
-  const createdUser = response.data;
-  console.log(createdUser.id); // Fully typed!
-}
-```
+    // Simple POST - errors handled automatically
+    const response = await api.post<User>("/users", userData, {
+      finally: () => setLoading(false),
+    });
 
-### Custom Options
-
-#### Add Headers
-
-```typescript
-const response = await api.post("/users", userData, {
-  headers: {
-    "X-Request-ID": generateUniqueId(),
-    "Content-Type": "application/json",
-  },
-});
-```
-
-#### Control Error Toasts
-
-```typescript
-// Disable error notifications for this request
-const response = await api.post("/users", userData, {
-  showErrorToast: false,
-});
-```
-
-#### Add a Cleanup Function
-
-```typescript
-const response = await api.post("/users", userData, {
-  finally: () => {
-    // This runs after the request, whether it succeeds or fails
-    resetForm();
-    hideLoadingSpinner();
-  },
-});
-```
-
-## Handling Different Data Types
-
-### Sending FormData
-
-```typescript
-// For file uploads or multipart form data
-const formData = new FormData();
-formData.append("file", fileInput.files[0]);
-formData.append("username", "John");
-
-const response = await api.post("/upload", formData);
-```
-
-## Full Example
-
-```typescript
-import ApiClient from "hmm-api";
-
-// Assuming you have a toast library configured
-const api = new ApiClient({
-  toast: yourToastLibrary,
-});
-
-async function createUserProfile() {
-  const profileData = {
-    username: "newuser",
-    email: "user@example.com",
-    age: 30,
+    if (response.success) {
+      // Only handle success case
+      redirectToUser(response.data.id);
+      resetForm();
+    }
   };
 
-  const response = await api.post<UserProfile>("/profiles", profileData, {
-    headers: {
-      Authorization: `Bearer ${yourAuthToken}`,
-    },
-    showErrorToast: true,
-    finally: () => {
-      clearForm();
+  const uploadFile = async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    // File upload - errors handled automatically
+    const response = await api.post("/upload", formData);
+
+    if (response.success) {
+      console.log("File uploaded:", response.data.url);
+    }
+  };
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        createUser({ name: "John", email: "john@example.com" });
+      }}
+    >
+      <button type="submit" disabled={loading}>
+        {loading ? "Creating..." : "Create User"}
+      </button>
+    </form>
+  );
+};
+```
+
+## Key Benefits
+
+- **No repetitive error handling** - Configure once for all forms
+- **Consistent validation UX** - All form errors shown the same way
+- **Clean form code** - Focus on form logic, not error handling
+- **Global auth handling** - 401 errors handled automatically
+
+## Advanced POST Features (v2.0.0)
+
+### File Upload with Progress
+
+Track upload progress for better user experience:
+
+```typescript
+const FileUploader = () => {
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploading, setUploading] = useState(false);
+
+  const handleFileUpload = async (file: File) => {
+    setUploading(true);
+    setUploadProgress(0);
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("category", "documents");
+
+    const response = await api.post("/files/upload", formData, {
+      onUploadProgress: (progress) => {
+        setUploadProgress(progress.percentage);
+        console.log(`Upload: ${progress.percentage}%`);
+        console.log(`${progress.loaded} / ${progress.total} bytes`);
+      },
+      timeout: 60000, // 1 minute timeout for uploads
+      finally: () => {
+        setUploading(false);
+      },
+    });
+
+    if (response.success) {
+      console.log("File uploaded:", response.data.url);
+      resetUploadForm();
+    }
+  };
+
+  return (
+    <div>
+      <input
+        type="file"
+        onChange={(e) => handleFileUpload(e.target.files[0])}
+        disabled={uploading}
+      />
+      {uploading && (
+        <div>
+          <ProgressBar value={uploadProgress} />
+          <span>{uploadProgress}% uploaded</span>
+        </div>
+      )}
+    </div>
+  );
+};
+```
+
+### POST with Polling
+
+Submit data and poll for processing status:
+
+```typescript
+const processDocument = async (documentData: any) => {
+  // Step 1: Submit document for processing
+  const submitResponse = await api.post("/documents/process", documentData);
+
+  if (!submitResponse.success) return;
+
+  const jobId = submitResponse.data.jobId;
+
+  // Step 2: Poll for processing status
+  const result = await api.get(`/jobs/${jobId}/status`, {
+    poll: {
+      interval: 2000, // Check every 2 seconds
+      maxAttempts: 30,
+      stopCondition: (response) => {
+        return response.success && response.data.status === "completed";
+      },
+      onPollSuccess: (response, attempt) => {
+        console.log(`Processing: ${response.data.progress}%`);
+        updateProcessingProgress(response.data.progress);
+      },
     },
   });
 
-  if (response.success) {
-    displaySuccessMessage("Profile created successfully");
-    updateLocalState(response.data);
+  if ("finalResponse" in result && result.finalResponse.success) {
+    console.log("Document processed successfully!");
+    return result.finalResponse.data;
   }
-}
+};
 ```
 
-## Quick Tips
+### Batch Operations with Progress
 
-- Always define request and response types for type safety
-- Check `response.success` before using `response.data`
-- Use the `finally` callback for cleanup operations
-- Configure global settings when creating the ApiClient
-- Supports both JSON and FormData payloads
+Handle multiple POST requests with progress tracking:
+
+```typescript
+const batchCreateUsers = async (users: CreateUserRequest[]) => {
+  const results = [];
+  let completed = 0;
+
+  for (const userData of users) {
+    const response = await api.post("/users", userData, {
+      onUploadProgress: (progress) => {
+        console.log(`User ${completed + 1}: ${progress.percentage}%`);
+      },
+      finally: () => {
+        completed++;
+        const overallProgress = (completed / users.length) * 100;
+        updateBatchProgress(overallProgress);
+      },
+    });
+
+    results.push(response);
+
+    if (response.success) {
+      console.log(`Created user: ${response.data.name}`);
+    }
+  }
+
+  return results;
+};
+```
+
+### Form Submission with Cleanup
+
+Proper form handling with automatic cleanup:
+
+```typescript
+const ContactForm = () => {
+  const [submitting, setSubmitting] = useState(false);
+  const apiRef = useRef(null);
+
+  useEffect(() => {
+    apiRef.current = new ApiClient({
+      baseUrl: "/api",
+      onError: (response) => {
+        toast.error(response.error);
+      },
+      onSuccess: (response) => {
+        toast.success("Message sent successfully!");
+      },
+    });
+
+    // Cleanup on unmount
+    return () => {
+      if (apiRef.current) {
+        apiRef.current.destroy();
+      }
+    };
+  }, []);
+
+  const handleSubmit = async (formData: ContactFormData) => {
+    setSubmitting(true);
+
+    const response = await apiRef.current.post("/contact", formData, {
+      timeout: 10000, // 10 second timeout for contact forms
+      finally: () => {
+        setSubmitting(false);
+      },
+    });
+
+    if (response.success) {
+      resetForm();
+      redirectToThankYou();
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <button type="submit" disabled={submitting}>
+        {submitting ? "Sending..." : "Send Message"}
+      </button>
+    </form>
+  );
+};
+```
+
+## When to Override Global Handling
+
+Only override when you need specific behavior:
+
+```typescript
+// Special case: Custom validation error display
+const response = await api.post("/users", userData, {
+  onError: (response) => {
+    // Custom handling for this specific form
+    highlightFieldErrors(response.error);
+    showInlineValidation(response.error);
+  },
+});
+
+// Special case: Silent submission for auto-save
+const response = await api.post("/auto-save", draftData, {
+  showError: false,
+  showSuccess: false,
+  timeout: 5000, // Quick timeout for auto-save
+});
+```

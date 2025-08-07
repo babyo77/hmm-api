@@ -1,0 +1,254 @@
+---
+title: Callback System (v2.0.0)
+description: Learn how to use the powerful callback system introduced in hmm-api v2.0.0.
+---
+
+# Callback System in hmm-api v2.0.0
+
+The callback system is one of the most powerful new features in v2.0.0, giving you complete control over how your application responds to API calls.
+
+## Global Callbacks
+
+Set up callbacks that run for every API request across your application.
+
+### onSuccess Callback
+
+```typescript
+import ApiClient from "hmm-api";
+
+const api = new ApiClient({
+  onSuccess: (response) => {
+    console.log("✅ Request succeeded:", response.status);
+
+    // Update global loading state
+    hideGlobalLoader();
+
+    // Track successful requests
+    analytics.track("api_success", {
+      endpoint: response.response?.url,
+      status: response.status,
+    });
+  },
+});
+```
+
+### onError Callback
+
+```typescript
+const api = new ApiClient({
+  onError: (response) => {
+    console.error("❌ Request failed:", response.error);
+
+    // Handle authentication errors globally
+    if (response.status === 401) {
+      redirectToLogin();
+    }
+
+    // Log errors to monitoring service
+    errorLogger.log({
+      error: response.error,
+      status: response.status,
+      endpoint: response.response?.url,
+    });
+  },
+});
+```
+
+## Per-Request Callbacks
+
+Override global callbacks for specific requests when you need custom behavior.
+
+### Success Override
+
+```typescript
+// Global success callback still runs, but this runs after
+const response = await api.post("/users", userData, {
+  onSuccess: (response) => {
+    // Specific success handling for user creation
+    showWelcomeModal(response.data.name);
+    sendWelcomeEmail(response.data.email);
+    redirectToOnboarding();
+  },
+});
+```
+
+### Error Override
+
+```typescript
+// Global error callback still runs, but this runs after
+const response = await api.get("/optional-data", {
+  onError: (response) => {
+    // Silently handle this specific error
+    console.log("Optional data not available, using defaults");
+    useDefaultData();
+  },
+});
+```
+
+## Combining with Finally Callbacks
+
+The `finally` callback runs after both success and error callbacks, perfect for cleanup.
+
+```typescript
+const response = await api.post("/upload", formData, {
+  onSuccess: (response) => {
+    showSuccessMessage("File uploaded successfully!");
+    updateFileList(response.data);
+  },
+  onError: (response) => {
+    showErrorMessage("Upload failed: " + response.error);
+    highlightDropZone("error");
+  },
+  finally: () => {
+    // Always runs regardless of success or failure
+    hideUploadProgress();
+    enableUploadButton();
+    clearFileInput();
+  },
+});
+```
+
+## Real-World Examples
+
+### Authentication Flow
+
+```typescript
+const api = new ApiClient({
+  baseUrl: "https://api.example.com",
+  onSuccess: (response) => {
+    // Reset failed attempt counter on any success
+    resetFailedAttempts();
+  },
+  onError: (response) => {
+    if (response.status === 401) {
+      // Handle token expiration
+      clearAuthToken();
+      redirectToLogin();
+    } else if (response.status >= 500) {
+      // Handle server errors
+      showMaintenanceMessage();
+    }
+  },
+});
+
+// Login with specific handling
+const loginResponse = await api.post("/auth/login", credentials, {
+  onSuccess: (response) => {
+    setAuthToken(response.data.token);
+    redirectToDashboard();
+    showWelcomeMessage(response.data.user.name);
+  },
+  onError: (response) => {
+    incrementFailedAttempts();
+    if (getFailedAttempts() >= 3) {
+      showCaptcha();
+    }
+  },
+});
+```
+
+### Form Submission with Validation
+
+```typescript
+const api = new ApiClient({
+  returnParsedError: true, // Get clean error messages
+  onError: (response) => {
+    // Global error logging
+    logError(response.error);
+  },
+});
+
+const submitForm = async (formData) => {
+  setSubmitting(true);
+
+  const response = await api.post("/forms/contact", formData, {
+    onSuccess: (response) => {
+      showSuccessMessage("Form submitted successfully!");
+      resetForm();
+      trackConversion("contact_form");
+    },
+    onError: (response) => {
+      // Handle validation errors specifically
+      if (response.status === 422) {
+        highlightFieldErrors(response.error);
+      } else {
+        showGenericErrorMessage();
+      }
+    },
+    finally: () => {
+      setSubmitting(false);
+    },
+  });
+};
+```
+
+### File Upload with Progress
+
+```typescript
+const uploadFile = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  showUploadProgress(0);
+
+  const response = await api.post("/upload", formData, {
+    onSuccess: (response) => {
+      showUploadProgress(100);
+      addToFileList(response.data);
+      showSuccessToast("File uploaded successfully!");
+    },
+    onError: (response) => {
+      showUploadError(response.error);
+      highlightDropZone("error");
+    },
+    finally: () => {
+      setTimeout(() => hideUploadProgress(), 1000);
+    },
+  });
+};
+```
+
+## Best Practices
+
+### 1. Keep Global Callbacks Generic
+
+```typescript
+// ✅ Good - Generic global handling
+const api = new ApiClient({
+  onSuccess: (response) => {
+    hideGlobalLoader();
+    logApiCall(response);
+  },
+  onError: (response) => {
+    hideGlobalLoader();
+    handleAuthErrors(response);
+    logApiError(response);
+  },
+});
+```
+
+### 2. Use Per-Request Callbacks for Specific Logic
+
+```typescript
+// ✅ Good - Specific per-request handling
+const response = await api.post("/orders", orderData, {
+  onSuccess: (response) => {
+    redirectToOrderConfirmation(response.data.orderId);
+    sendOrderConfirmationEmail();
+  },
+});
+```
+
+### 3. Always Use Finally for Cleanup
+
+```typescript
+// ✅ Good - Cleanup in finally
+const response = await api.get("/data", {
+  finally: () => {
+    hideLoadingSpinner();
+    enableRefreshButton();
+  },
+});
+```
+
+The callback system in v2.0.0 gives you unprecedented control over your API interactions while maintaining clean, readable code. Use global callbacks for consistent behavior and per-request callbacks for specific use cases.

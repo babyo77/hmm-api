@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: Installation Guide for hmm-api.
+description: Installation Guide for hmm-api v2.0.0.
 ---
 
 ### 1. Installation
@@ -8,18 +8,18 @@ description: Installation Guide for hmm-api.
 **Using npm:**
 
 ```bash
-npm install hmm-api
+npm install hmm-api@latest
 ```
 
 **Using yarn:**
 
 ```bash
-yarn add hmm-api
+yarn add hmm-api@latest
 ```
 
-### 2. Import and Usage
+### 2. Basic Usage
 
-**In your JavaScript file:**
+**Simple setup:**
 
 ```javascript
 import ApiClient from "hmm-api";
@@ -27,43 +27,80 @@ import ApiClient from "hmm-api";
 // Create an instance of the ApiClient
 const apiClient = new ApiClient();
 
-// Make API requests
-apiClient
-  .get("https://api.example.com/data")
-  .then((response) => {
-    if (response.success) {
-      // Handle successful response
-      console.log(response.data);
-    } else {
-      // Handle error response
-      console.error(response.error);
-    }
-  })
-  .catch((error) => {
-    // Handle general errors
-    console.error(error);
-  });
+// Make API requests with automatic error handling
+const response = await apiClient.get("https://api.example.com/data");
+
+if (response.success) {
+  // Handle successful response
+  console.log(response.data);
+} else {
+  // Handle error response (automatically logged via onError callback)
+  console.error(response.error);
+}
 ```
 
-### 3. API Configuration (Optional)
-
-You can customize the `ApiClient` instance with the following options:
-
-- **`toast`**: An instance of your preferred toast library for displaying notifications.
-- **`globalHeaders`**: An object containing headers to be included in all requests.
-- **`showErrorToast`**: A boolean indicating whether to show toast notifications for errors (default: true).
-- **`parseErrorResponse`**: A function to customize error message parsing.
-- **`credentials`**: A string specifying the credentials mode for requests (e.g., 'include', 'same-origin').
-
-**Example with configuration:**
+### 3. Global Error Handling Setup (Recommended)
 
 ```javascript
-import ApiClient from "hmm-api";
-import MyToastLibrary from "my-toast-library";
+import ApiClient, { parseResponseMessage } from "hmm-api";
+import { toast } from "sonner"; // or your preferred toast library
 
+// Configure once, handle all errors globally
 const apiClient = new ApiClient({
-  toast: MyToastLibrary,
+  baseUrl: "https://api.example.com",
+  returnParsedError: true, // Get clean error messages
+  onError: (response) => {
+    // Handle ALL API errors in one place
+    toast.error(response.error);
+
+    // Handle auth errors globally
+    if (response.status === 401) {
+      redirectToLogin();
+    }
+  },
+  onSuccess: (response) => {
+    // Optional: Handle all successes globally
+    console.log("✅ Request successful");
+  },
 });
+
+// Now all your API calls are automatically handled
+const response = await apiClient.get("/users");
+const createResponse = await apiClient.post("/users", userData);
+// No need to handle errors in every request!
 ```
 
-**Remember to replace `https://api.example.com/data` with the actual URL of your API endpoint and adjust the configuration options as needed.**
+### 4. Using parseResponseMessage Utility
+
+```javascript
+import { parseResponseMessage } from "hmm-api";
+
+// Use the built-in parser in your own code
+const customErrorHandler = (error) => {
+  const parsed = parseResponseMessage(error);
+  console.log(parsed.message); // Clean error message
+
+  // Use in your own error handling
+  showCustomErrorDialog(parsed.message);
+};
+```
+
+### 5. Key Benefits of Global Configuration
+
+- **No repetitive error handling** - Configure once, works everywhere
+- **Consistent user experience** - All errors handled the same way
+- **Centralized auth handling** - Handle 401 errors globally
+- **Clean code** - Focus on business logic, not error handling
+
+```javascript
+// Before: Repetitive error handling
+const response1 = await api.get("/users");
+if (!response1.success) toast.error(response1.error);
+
+const response2 = await api.post("/users", data);
+if (!response2.success) toast.error(response2.error);
+
+// After: Global handling - no repetition needed!
+const response1 = await api.get("/users"); // Errors handled automatically
+const response2 = await api.post("/users", data); // Errors handled automatically
+```

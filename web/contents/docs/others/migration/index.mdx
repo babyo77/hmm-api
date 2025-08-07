@@ -1,0 +1,352 @@
+---
+title: Migration Guide (v1.x to v2.0.0)
+description: Step-by-step guide to migrate from hmm-api v1.x to v2.0.0.
+---
+
+# Migration Guide: v1.x to v2.0.0
+
+This guide will help you migrate from hmm-api v1.x to the new v2.0.0 with minimal breaking changes.
+
+## What's Changed
+
+### ✅ Non-Breaking Changes (No Action Required)
+
+- All existing API methods (`get`, `post`, `put`, `patch`, `delete`) work exactly the same
+- Existing configuration options are still supported
+- Response format remains unchanged
+- TypeScript types are backward compatible
+
+### 🔄 Deprecated (Still Works, But Consider Updating)
+
+- `toast` parameter: While still functional, consider using the new callback system
+- `parseErrorResponse`: Replaced by `returnParsedError` option
+
+### ✨ New Features (Optional Upgrades)
+
+- Callback system (`onSuccess`, `onError`)
+- `finally` callbacks for cleanup
+- `showGlobalSuccess` option
+- `returnParsedError` for cleaner error messages
+- `credentials` global configuration
+- Per-request callback overrides
+
+## Step-by-Step Migration
+
+### Step 1: Update Package Version
+
+```bash
+npm install hmm-api@latest
+```
+
+### Step 2: Basic Migration (No Code Changes Required)
+
+Your existing code will continue to work without any changes:
+
+```typescript
+// ✅ This still works in v2.0.0
+import ApiClient from "hmm-api";
+
+const api = new ApiClient({
+  baseUrl: "https://api.example.com",
+  globalHeaders: { Authorization: "Bearer token" },
+  showGlobalError: true,
+});
+
+const response = await api.get("/users");
+if (response.success) {
+  console.log(response.data);
+}
+```
+
+### Step 3: Optional Enhancements
+
+#### Replace Toast Library with Callbacks
+
+**Before (v1.x):**
+
+```typescript
+import ApiClient from "hmm-api";
+import { toast } from "react-toastify";
+
+const api = new ApiClient({
+  toast: toast,
+  showGlobalError: true,
+});
+```
+
+**After (v2.0.0):**
+
+```typescript
+import ApiClient from "hmm-api";
+import { toast } from "react-toastify";
+
+const api = new ApiClient({
+  showGlobalError: true,
+  showGlobalSuccess: true,
+  onSuccess: (response) => {
+    toast.success("Request successful!");
+  },
+  onError: (response) => {
+    toast.error(`Error: ${response.error}`);
+  },
+});
+```
+
+#### Add Cleanup Functions
+
+**Before (v1.x):**
+
+```typescript
+setLoading(true);
+const response = await api.get("/users");
+setLoading(false);
+
+if (response.success) {
+  setUsers(response.data);
+}
+```
+
+**After (v2.0.0):**
+
+```typescript
+setLoading(true);
+const response = await api.get("/users", {
+  finally: () => {
+    setLoading(false);
+  },
+});
+
+if (response.success) {
+  setUsers(response.data);
+}
+```
+
+#### Enable Parsed Errors
+
+**Before (v1.x):**
+
+```typescript
+const api = new ApiClient({
+  parseErrorResponse: (error) => {
+    if (typeof error === "string") return { message: error };
+    if (error.message) return { message: error.message };
+    return { message: "An error occurred" };
+  },
+});
+```
+
+**After (v2.0.0):**
+
+```typescript
+const api = new ApiClient({
+  returnParsedError: true, // Built-in parsing
+  onError: (response) => {
+    // response.error is now a clean string
+    console.error(response.error);
+  },
+});
+```
+
+## Common Migration Patterns
+
+### Pattern 1: Form Submission
+
+**Before (v1.x):**
+
+```typescript
+const submitForm = async (data) => {
+  setSubmitting(true);
+  try {
+    const response = await api.post("/forms", data);
+    if (response.success) {
+      toast.success("Form submitted!");
+      resetForm();
+    } else {
+      toast.error("Submission failed");
+    }
+  } finally {
+    setSubmitting(false);
+  }
+};
+```
+
+**After (v2.0.0):**
+
+```typescript
+const submitForm = async (data) => {
+  setSubmitting(true);
+
+  const response = await api.post("/forms", data, {
+    onSuccess: (response) => {
+      toast.success("Form submitted!");
+      resetForm();
+    },
+    onError: (response) => {
+      toast.error("Submission failed");
+    },
+    finally: () => {
+      setSubmitting(false);
+    },
+  });
+};
+```
+
+### Pattern 2: Authentication
+
+**Before (v1.x):**
+
+```typescript
+const api = new ApiClient({
+  baseUrl: "https://api.example.com",
+});
+
+// Manual token management
+api.setGlobalHeaders({
+  Authorization: `Bearer ${token}`,
+});
+```
+
+**After (v2.0.0):**
+
+```typescript
+const api = new ApiClient({
+  baseUrl: "https://api.example.com",
+  credentials: "include", // Automatic credential handling
+  onError: (response) => {
+    if (response.status === 401) {
+      // Automatic auth error handling
+      redirectToLogin();
+    }
+  },
+});
+
+// Still works, but now with better error handling
+api.setAuthToken(`Bearer ${token}`);
+```
+
+### Pattern 3: File Upload
+
+**Before (v1.x):**
+
+```typescript
+const uploadFile = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  setUploading(true);
+  const response = await api.post("/upload", formData);
+  setUploading(false);
+
+  if (response.success) {
+    setUploadedFiles((prev) => [...prev, response.data]);
+  }
+};
+```
+
+**After (v2.0.0):**
+
+```typescript
+const uploadFile = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  setUploading(true);
+
+  const response = await api.post("/upload", formData, {
+    onSuccess: (response) => {
+      setUploadedFiles((prev) => [...prev, response.data]);
+      toast.success("File uploaded successfully!");
+    },
+    onError: (response) => {
+      toast.error(`Upload failed: ${response.error}`);
+    },
+    finally: () => {
+      setUploading(false);
+    },
+  });
+};
+```
+
+## Testing Your Migration
+
+### 1. Verify Existing Functionality
+
+Run your existing tests to ensure nothing is broken:
+
+```bash
+npm test
+```
+
+### 2. Test New Features Gradually
+
+Start by adding `finally` callbacks to a few requests:
+
+```typescript
+// Add this to existing requests
+const response = await api.get("/test", {
+  finally: () => console.log("Request completed"),
+});
+```
+
+### 3. Enable Enhanced Error Handling
+
+```typescript
+const api = new ApiClient({
+  // Your existing config
+  returnParsedError: true, // Add this for cleaner errors
+});
+```
+
+## Troubleshooting
+
+### Issue: TypeScript Errors
+
+**Problem:** TypeScript complains about new options.
+
+**Solution:** Update your TypeScript version or add type assertions:
+
+```typescript
+const api = new ApiClient({
+  // ... existing config
+  onSuccess: (response: any) => {
+    console.log(response);
+  },
+} as any);
+```
+
+### Issue: Toast Library Integration
+
+**Problem:** Existing toast integration not working.
+
+**Solution:** Use the new callback system:
+
+```typescript
+// Instead of passing toast directly
+const api = new ApiClient({
+  onSuccess: (response) => {
+    yourToastLibrary.success("Success!");
+  },
+  onError: (response) => {
+    yourToastLibrary.error(response.error);
+  },
+});
+```
+
+## Benefits After Migration
+
+- **Better Error Handling:** Centralized error management with callbacks
+- **Cleaner Code:** Less repetitive try-catch blocks
+- **Enhanced UX:** Built-in success notifications and better loading states
+- **Improved Debugging:** Better error messages with `returnParsedError`
+- **More Flexibility:** Per-request callback overrides
+
+## Need Help?
+
+If you encounter issues during migration:
+
+1. Check that your existing code still works (it should!)
+2. Add new features gradually
+3. Refer to the [callback system documentation](/docs/others/callbacks)
+4. Open an issue on GitHub if you find bugs
+
+The migration to v2.0.0 is designed to be smooth and non-breaking. Take your time to adopt the new features at your own pace!

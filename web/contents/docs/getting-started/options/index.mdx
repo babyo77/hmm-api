@@ -1,9 +1,9 @@
 ---
 title: Configuration Options
-description: A comprehensive overview of all available configuration options.
+description: A comprehensive overview of all available configuration options in v2.0.0.
 ---
 
-Here's a breakdown of the configuration options available in `hmm-api`:
+Here's a breakdown of the configuration options available in `hmm-api v2.0.0`:
 
 ### 1. baseUrl
 
@@ -14,14 +14,14 @@ Here's a breakdown of the configuration options available in `hmm-api`:
   const apiClient = new ApiClient({ baseUrl: "https://api.example.com" });
   ```
 
-### 2. toast
+### 2. returnParsedError
 
-- **Default:** None
-- **Purpose:** Integrates a toast library for notifications.
+- **Default:** `false`
+- **Purpose:** Returns clean, parsed error messages instead of raw error objects.
 - **Example:**
   ```javascript
-  import MyToastLibrary from "my-toast-library";
-  const apiClient = new ApiClient({ toast: MyToastLibrary });
+  const apiClient = new ApiClient({ returnParsedError: true });
+  // Now response.error will be a clean string message
   ```
 
 ### 3. globalHeaders
@@ -38,53 +38,48 @@ Here's a breakdown of the configuration options available in `hmm-api`:
   });
   ```
 
-### 4. showGlobalErrorToast
+### 4. showGlobalError
 
-- **Default:** `true`
-- **Purpose:** Controls global toast display.
+- **Default:** `true` (in browser), `false` (in Node.js)
+- **Purpose:** Controls whether global error callbacks are triggered.
 - **Example:**
   ```javascript
-  const apiClient = new ApiClient({ showGlobalErrorToast: true });
+  const apiClient = new ApiClient({ showGlobalError: true });
   ```
 
-### 5. showGlobalSuccessToast
+### 5. showGlobalSuccess
 
 - **Default:** `false`
-- **Purpose:** Controls global toast display.
+- **Purpose:** Controls whether global success callbacks are triggered.
 - **Example:**
   ```javascript
-  const apiClient = new ApiClient({ showGlobalSuccessToast: true });
+  const apiClient = new ApiClient({ showGlobalSuccess: true });
   ```
 
-### 6. parseErrorResponse
+### 6. onSuccess
 
-- **Default:** Default parser
-- **Purpose:** Customizes error message parsing.
+- **Default:** Console log function
+- **Purpose:** Global callback function executed on successful requests.
 - **Example:**
   ```javascript
   const apiClient = new ApiClient({
-    parseErrorResponse: (error) => {
-      // default error parsing logic
-      if (typeof error === "string") return { message: error };
-      if (error.message) return { message: error.message };
-      if (error.error?.message) return { message: error.error.message };
-      return { message: "An unexpected error occurred" };
+    onSuccess: (response) => {
+      console.log("✅ Success:", response.data);
+      // Show success notification, update UI, etc.
     },
   });
   ```
 
-### 7. parseErrorResponse
+### 7. onError
 
-- **Default:** Default parser
-- **Purpose:** Customizes error message parsing.
+- **Default:** Console error function
+- **Purpose:** Global callback function executed on failed requests.
 - **Example:**
   ```javascript
   const apiClient = new ApiClient({
-    parseErrorResponse: (response) => {
-      // default error parsing logic
-      if (typeof response === "string") return { message: response };
-      if (response.message) return { message: response.message };
-      return { message: "Request succeeded" };
+    onError: (response) => {
+      console.error("❌ Error:", response.error);
+      // Show error notification, log to service, etc.
     },
   });
   ```
@@ -98,4 +93,339 @@ Here's a breakdown of the configuration options available in `hmm-api`:
   const apiClient = new ApiClient({ credentials: "include" });
   ```
 
-By customizing these options, you can tailor `hmm-api` to your specific project needs, ensuring a robust and flexible HTTP client solution.
+### 9. timeout
+
+- **Default:** `30000` (30 seconds)
+- **Purpose:** Global timeout for all requests in milliseconds.
+- **Example:**
+  ```javascript
+  const apiClient = new ApiClient({
+    timeout: 15000, // 15 seconds
+  });
+  ```
+
+## Per-Request Options (New in v2.0.0)
+
+All HTTP methods now support these additional per-request options:
+
+### finally
+
+- **Purpose:** Cleanup function that runs after request completion (success or failure).
+- **Example:**
+  ```javascript
+  const response = await api.get("/users", {
+    finally: () => {
+      hideLoadingSpinner();
+      enableButton();
+    },
+  });
+  ```
+
+### onSuccess (per-request)
+
+- **Purpose:** Override global success callback for this specific request.
+- **Example:**
+  ```javascript
+  const response = await api.post("/users", userData, {
+    onSuccess: (response) => {
+      showSuccessMessage("User created successfully!");
+    },
+  });
+  ```
+
+### onError (per-request)
+
+- **Purpose:** Override global error callback for this specific request.
+- **Example:**
+  ```javascript
+  const response = await api.get("/users", {
+    onError: (response) => {
+      showCustomErrorDialog(response.error);
+    },
+  });
+  ```
+
+## New Advanced Options (v2.0.0)
+
+### onUploadProgress
+
+- **Purpose:** Track file upload progress.
+- **Example:**
+  ```javascript
+  const response = await api.post("/upload", formData, {
+    onUploadProgress: (progress) => {
+      console.log(`Upload: ${progress.percentage}%`);
+      updateProgressBar(progress.percentage);
+    },
+  });
+  ```
+
+### onDownloadProgress
+
+- **Purpose:** Track file download progress.
+- **Example:**
+  ```javascript
+  const response = await api.get("/download/file.zip", {
+    onDownloadProgress: (progress) => {
+      console.log(`Download: ${progress.percentage}%`);
+      updateProgressBar(progress.percentage);
+    },
+  });
+  ```
+
+### timeout (per-request)
+
+- **Purpose:** Override global timeout for specific requests.
+- **Example:**
+
+  ```javascript
+  // Quick health check
+  const health = await api.get("/health", { timeout: 3000 });
+
+  // Long file upload
+  const upload = await api.post("/upload", data, { timeout: 60000 });
+  ```
+
+### poll (per-request)
+
+- **Purpose:** Automatically poll an endpoint until a condition is met.
+- **Example:**
+
+  ```javascript
+  const result = await api.get("/job/status", {
+    poll: {
+      interval: 2000, // Poll every 2 seconds
+      maxAttempts: 10,
+      pollId: "job-status-check", // Optional custom poll ID
+      stopCondition: (response) => response.data.status === "completed",
+      onPollSuccess: (response, attempt) => {
+        console.log(`Attempt ${attempt}: ${response.data.progress}%`);
+      },
+    },
+  });
+
+  // Check if it's a polling result
+  if ("finalResponse" in result) {
+    console.log("Polling completed:", result.finalResponse.data);
+    console.log("Poll ID:", result.pollId); // "job-status-check"
+  }
+
+  // Stop specific polling operation
+  api.stopPolling("job-status-check");
+  ```
+
+## Instance Methods (New in v2.0.0)
+
+### destroy()
+
+- **Purpose:** Cleanup method to prevent memory leaks and stop all active operations.
+- **Example:**
+
+  ```javascript
+  const api = new ApiClient({ baseUrl: "/api" });
+
+  // Later, when component unmounts or app closes
+  api.destroy();
+
+  // Any further API calls will throw an error
+  ```
+
+### stopAllPolling()
+
+- **Purpose:** Stop all active polling operations at once.
+- **Example:**
+
+  ```javascript
+  const api = new ApiClient({ baseUrl: "/api" });
+
+  // Start multiple polling operations
+  api.get("/status1", { poll: { interval: 1000 } });
+  api.get("/status2", { poll: { interval: 2000 } });
+
+  // Stop all polling
+  api.stopAllPolling();
+  ```
+
+### getActivePollingCount()
+
+- **Purpose:** Get the number of currently active polling operations.
+- **Example:**
+
+  ```javascript
+  const api = new ApiClient({ baseUrl: "/api" });
+
+  console.log(`Active polls: ${api.getActivePollingCount()}`); // 0
+
+  api.get("/status", { poll: { interval: 1000 } });
+  console.log(`Active polls: ${api.getActivePollingCount()}`); // 1
+  ```
+
+### getActivePollingIds()
+
+- **Purpose:** Get an array of all currently active polling operation IDs.
+- **Example:**
+
+  ```javascript
+  const api = new ApiClient({ baseUrl: "/api" });
+
+  // Start multiple polling operations
+  api.get("/status", { poll: { interval: 1000, pollId: "status-check" } });
+  api.get("/health", { poll: { interval: 2000, pollId: "health-check" } });
+
+  const activeIds = api.getActivePollingIds();
+  console.log(activeIds); // ["status-check", "health-check"]
+  ```
+
+### stopPolling(pollId)
+
+- **Purpose:** Stop a specific polling operation by its ID.
+- **Example:**
+
+  ```javascript
+  const api = new ApiClient({ baseUrl: "/api" });
+
+  // Start polling with custom ID
+  const result = await api.get("/status", {
+    poll: {
+      interval: 1000,
+      pollId: "status-check",
+    },
+  });
+
+  // Stop specific polling operation
+  const stopped = api.stopPolling("status-check");
+  console.log(`Polling stopped: ${stopped}`); // true if successful
+  ```
+
+### setAuthToken(token)
+
+- **Purpose:** Set or update the authorization token.
+- **Example:**
+
+  ```javascript
+  const api = new ApiClient();
+
+  api.setAuthToken("Bearer your-token");
+  // All subsequent requests will include this token
+  ```
+
+### setGlobalHeaders(headers)
+
+- **Purpose:** Add or update global headers.
+- **Example:**
+
+  ```javascript
+  const api = new ApiClient();
+
+  api.setGlobalHeaders({
+    "X-API-Version": "v2",
+    "X-Client-ID": "web-app",
+  });
+  ```
+
+### setShowGlobalError(show)
+
+- **Purpose:** Enable or disable global error callback execution.
+- **Example:**
+
+  ```javascript
+  const api = new ApiClient();
+
+  api.setShowGlobalError(false); // Disable global error callbacks
+  ```
+
+### setShowGlobalSuccess(show)
+
+- **Purpose:** Enable or disable global success callback execution.
+- **Example:**
+
+  ```javascript
+  const api = new ApiClient();
+
+  api.setShowGlobalSuccess(true); // Enable global success callbacks
+  ```
+
+### setOnSuccess(callback)
+
+- **Purpose:** Update the global success callback.
+- **Example:**
+
+  ```javascript
+  const api = new ApiClient();
+
+  api.setOnSuccess((response) => {
+    console.log("New success handler:", response.data);
+  });
+  ```
+
+### setOnError(callback)
+
+- **Purpose:** Update the global error callback.
+- **Example:**
+
+  ```javascript
+  const api = new ApiClient();
+
+  api.setOnError((response) => {
+    console.error("New error handler:", response.error);
+  });
+  ```
+
+## Memory Management Best Practices
+
+### React Component Example
+
+```javascript
+import { useEffect, useRef } from "react";
+import ApiClient from "hmm-api";
+
+const Dashboard = () => {
+  const apiRef = useRef(null);
+
+  useEffect(() => {
+    // Create API client
+    apiRef.current = new ApiClient({
+      baseUrl: "/api",
+      onSuccess: (response) => {
+        console.log("Request succeeded");
+      },
+    });
+
+    // Cleanup on unmount
+    return () => {
+      if (apiRef.current) {
+        apiRef.current.destroy();
+      }
+    };
+  }, []);
+
+  const handleStartPolling = async () => {
+    if (apiRef.current) {
+      const result = await apiRef.current.get("/status", {
+        poll: {
+          interval: 2000,
+          onPollSuccess: (response) => {
+            console.log("Status updated:", response.data);
+          },
+        },
+      });
+    }
+  };
+
+  const handleStopPolling = () => {
+    if (apiRef.current) {
+      apiRef.current.stopAllPolling();
+    }
+  };
+
+  return (
+    <div>
+      <button onClick={handleStartPolling}>Start Polling</button>
+      <button onClick={handleStopPolling}>Stop All Polling</button>
+      <p>Active polls: {apiRef.current?.getActivePollingCount() || 0}</p>
+    </div>
+  );
+};
+```
+
+By customizing these options and using the new instance methods, you can tailor `hmm-api v2.0.0` to your specific project needs, ensuring a robust and flexible HTTP client solution with enhanced callback control, progress tracking, timeout management, automatic polling capabilities, and proper memory management.

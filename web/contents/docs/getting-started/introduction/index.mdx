@@ -1,9 +1,9 @@
 ---
 title: Introduction
-description: This section provides an overview of hmm-api.
+description: This section provides an overview of hmm-api v2.0.0.
 ---
 
-Tired of manually handling errors and showing toast notifications for every API call in your React, Next.js, or Node.js application? Simplify your API interaction with **HMM-API**, a powerful package that automates error handling, toast notifications, and much more!
+Tired of manually handling errors and showing toast notifications for every API call in your React, Next.js, or Node.js application? **HMM-API v2.0.0** takes API management to the next level with powerful callback systems, enhanced error handling, and improved developer experience!
 
 With **HMM-API**, you can focus on building your application while it handles the repetitive tasks for you. Whether you're working on a frontend React app or a backend Node.js server, **HMM-API** provides a consistent, easy-to-use solution for API management.
 
@@ -19,10 +19,13 @@ With **HMM-API**, you can focus on building your application while it handles th
 ## Key Features:
 
 - **Automatic Error Handling:** No more wrapping your API calls in `try-catch` blocks! **HMM-API** automatically catches and processes errors.
-- **Integrated Toast Notifications (for frontend apps):** Say goodbye to manually triggering toast messages for every failure. **HMM-API** handles error notifications for you on the frontend.
-- **Custom Error Parsing:** Customize how errors are parsed with your own function to display the most relevant information.
-- **Global Configurations:** Set global headers, credentials, and even control whether to show global toast messages across all API calls.
-- **Node.js Support:** **HMM-API** now fully supports backend integration with Node.js. Use the same package on both frontend and backend for seamless development.
+- **Callback System:** Global and per-request success/error callbacks for complete control over API responses.
+- **Success & Error Notifications:** Integrated toast notifications for both success and error states (frontend apps).
+- **Enhanced Error Parsing:** Built-in error parsing with `returnParsedError` option for cleaner error messages.
+- **Finally Callbacks:** Cleanup functions that run after every request, perfect for hiding loading states.
+- **Flexible Configuration:** Global settings with per-request overrides for maximum flexibility.
+- **Credentials Support:** Built-in credentials handling for authentication scenarios.
+- **Node.js Support:** Full backend integration with Node.js. Use the same package on both frontend and backend.
 
 ## Why HMM-API?
 
@@ -31,4 +34,14 @@ With **HMM-API**, you can focus on building your application while it handles th
 - **Centralized Configuration:** Easily configure global settings, ensuring consistency across your entire application stack.
 - **Enhanced Developer Experience:** By abstracting away common API tasks, developers can focus more on core functionality.
 
-Start using **HMM-API** today and streamline your API management across both the frontend and backend. With automated error handling, intuitive configurations, and seamless integration in React, Next.js, and Node.js, you can build your app faster and with fewer headaches.
+## What's New in v2.0.0
+
+- **🎯 Callback System**: Global and per-request success/error callbacks for complete control
+- **✨ Success Toasts**: Optional global success notifications alongside error handling
+- **🔧 Enhanced Error Handling**: `returnParsedError` option for cleaner, more readable error messages
+- **🔐 Credentials Support**: Global credentials configuration for authentication scenarios
+- **🧹 Finally Callbacks**: Cleanup functions that run after every request (perfect for hiding loading states)
+- **⚡ Per-Request Overrides**: Override global callbacks and settings for individual requests
+- **🎨 Improved Developer Experience**: Better TypeScript support and more intuitive API design
+
+Start using **HMM-API v2.0.0** today and experience the next level of API management. With enhanced callback systems, improved error handling, and seamless integration across React, Next.js, and Node.js, you can build your app faster and with fewer headaches.

@@ -1,0 +1,1513 @@
+---
+title: Advanced Features (v2.0.0)
+description: Learn about polling, progress tracking, timeout features, memory management, and cleanup in hmm-api v2.0.0.
+---
+
+# Advanced Features in hmm-api v2.0.0
+
+## Polling - Automatic Data Fetching
+
+Easily implement polling without manual interval management. Perfect for real-time data updates.
+
+### Basic Polling
+
+```typescript
+import ApiClient from "hmm-api";
+
+const api = new ApiClient({
+  baseUrl: "https://api.example.com",
+});
+
+// Poll for job status every 2 seconds using GET
+const result = await api.get("/job/status/123", {
+  poll: {
+    interval: 2000, // Poll every 2 seconds
+    maxAttempts: 10, // Stop after 10 attempts
+    stopCondition: (response) => {
+      // Stop when job is complete
+      return response.success && response.data.status === "completed";
+    },
+    onPollSuccess: (response, attempt) => {
+      console.log(`Attempt ${attempt}: ${response.data.status}`);
+    },
+  },
+});
+
+// Check if it's a polling result
+if ("finalResponse" in result) {
+  console.log(`Job completed after ${result.attempts} attempts`);
+  console.log(`Poll ID: ${result.pollId}`); // Auto-generated poll ID
+  console.log("Final data:", result.finalResponse.data);
+}
+```
+
+### Custom Poll ID Management
+
+Assign custom IDs to polling operations for better control and management:
+
+```typescript
+const api = new ApiClient({
+  baseUrl: "https://api.example.com",
+});
+
+// Start polling with custom ID
+const result = await api.get("/job/status/123", {
+  poll: {
+    interval: 2000,
+    maxAttempts: 10,
+    pollId: "job-status-123", // Custom poll ID
+    stopCondition: (response) => {
+      return response.success && response.data.status === "completed";
+    },
+    onPollSuccess: (response, attempt) => {
+      console.log(`Job 123 - Attempt ${attempt}: ${response.data.status}`);
+    },
+  },
+});
+
+// Access the custom poll ID
+if ("pollId" in result) {
+  console.log(`Custom Poll ID: ${result.pollId}`); // "job-status-123"
+}
+
+// Stop specific polling operation by ID
+const stopped = api.stopPolling("job-status-123");
+console.log(`Polling stopped: ${stopped}`); // true if successful
+
+// Check active polling count
+console.log(`Active polls: ${api.getActivePollingCount()}`);
+```
+
+### Real-World Polling Examples
+
+#### File Processing Status with Custom ID
+
+```typescript
+const checkProcessingStatus = async (fileId: string) => {
+  const customPollId = `file-processing-${fileId}`;
+
+  const result = await api.get(`/files/${fileId}/status`, {
+    poll: {
+      interval: 3000,
+      maxAttempts: 20,
+      pollId: customPollId, // Custom ID for this specific file
+      stopCondition: (response) => {
+        const status = response.data?.status;
+        return status === "completed" || status === "failed";
+      },
+      onPollSuccess: (response, attempt) => {
+        updateProgressBar(response.data.progress);
+        console.log(`File ${fileId} - Processing: ${response.data.progress}%`);
+      },
+    },
+  });
+
+  if ("finalResponse" in result) {
+    console.log(`File processing completed with poll ID: ${result.pollId}`);
+
+    if (result.finalResponse.data.status === "completed") {
+      showSuccessMessage("File processed successfully!");
+    }
+  }
+};
+
+// Stop specific file processing if needed
+const cancelFileProcessing = (fileId: string) => {
+  const pollId = `file-processing-${fileId}`;
+  const stopped = api.stopPolling(pollId);
+
+  if (stopped) {
+    console.log(`Cancelled processing for file ${fileId}`);
+  }
+};
+```
+
+#### Order Status Tracking with Management
+
+```typescript
+const trackOrder = async (orderId: string) => {
+  const orderPollId = `order-tracking-${orderId}`;
+
+  const result = await api.get(`/orders/${orderId}`, {
+    poll: {
+      interval: 5000, // Check every 5 seconds
+      pollId: orderPollId,
+      stopCondition: (response) => {
+        return response.data?.status === "delivered";
+      },
+      onPollSuccess: (response, attempt) => {
+        updateOrderStatus(response.data.status);
+        console.log(`Order ${orderId} - Status: ${response.data.status}`);
+
+        // Stop polling if user navigates away
+        if (shouldStopPolling()) {
+          api.stopPolling(orderPollId);
+        }
+      },
+    },
+  });
+
+  if ("finalResponse" in result) {
+    console.log(`Order tracking completed: ${result.pollId}`);
+  }
+};
+
+// Stop order tracking from anywhere in your app
+const stopOrderTracking = (orderId: string) => {
+  const orderPollId = `order-tracking-${orderId}`;
+  const stopped = api.stopPolling(orderPollId);
+
+  if (stopped) {
+    console.log(`Stopped tracking order ${orderId}`);
+    updateUI(`Tracking stopped for order ${orderId}`);
+  }
+};
+```
+
+## Upload/Download Progress Tracking
+
+Track file upload and download progress like Axios.
+
+### Upload Progress
+
+```typescript
+const uploadFile = async (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await api.post("/upload", formData, {
+    onUploadProgress: (progress) => {
+      console.log(`Upload: ${progress.percentage}%`);
+      updateProgressBar(progress.percentage);
+
+      // Show detailed progress
+      console.log(`${progress.loaded} / ${progress.total} bytes`);
+    },
+    onSuccess: (response) => {
+      showSuccessMessage("File uploaded successfully!");
+    },
+  });
+};
+```
+
+### Download Progress
+
+```typescript
+const downloadFile = async (fileId: string) => {
+  const response = await api.get(`/files/${fileId}/download`, {
+    onDownloadProgress: (progress) => {
+      console.log(`Download: ${progress.percentage}%`);
+      updateDownloadProgress(progress.percentage);
+    },
+    onSuccess: (response) => {
+      // Handle downloaded file
+      saveFile(response.data);
+    },
+  });
+};
+```
+
+### Complete File Upload Example
+
+```typescript
+const FileUploader = () => {
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploading, setUploading] = useState(false);
+
+  const handleFileUpload = async (file: File) => {
+    setUploading(true);
+    setUploadProgress(0);
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("category", "documents");
+
+    const response = await api.post("/files/upload", formData, {
+      onUploadProgress: (progress) => {
+        setUploadProgress(progress.percentage);
+      },
+      onSuccess: (response) => {
+        toast.success("File uploaded successfully!");
+        addToFileList(response.data);
+      },
+      finally: () => {
+        setUploading(false);
+      },
+    });
+  };
+
+  return (
+    <div>
+      <input
+        type="file"
+        onChange={(e) => handleFileUpload(e.target.files[0])}
+        disabled={uploading}
+      />
+      {uploading && (
+        <div>
+          <ProgressBar value={uploadProgress} />
+          <span>{uploadProgress}% uploaded</span>
+        </div>
+      )}
+    </div>
+  );
+};
+```
+
+## Timeout Configuration
+
+Set timeouts globally or per request to handle slow connections.
+
+### Global Timeout with Safety Limits
+
+```typescript
+const api = new ApiClient({
+  baseUrl: "https://api.example.com",
+  timeout: 600000, // Requested 10 minutes, but automatically capped at 5 minutes (300000ms)
+  onError: (response) => {
+    if (response.error?.name === "AbortError") {
+      toast.error("Request timed out. Please try again.");
+    }
+  },
+});
+
+// Timeout validation prevents invalid values
+try {
+  const invalidApi = new ApiClient({
+    timeout: -5000, // Error: Timeout must be a positive number
+  });
+} catch (error) {
+  console.error("Invalid timeout:", error.message);
+}
+```
+
+### Per-Request Timeout with Enhanced Abort Handling
+
+```typescript
+// Short timeout for quick operations
+const quickResponse = await api.get("/health", {
+  timeout: 3000, // 3 seconds
+});
+
+// Longer timeout for heavy operations
+const heavyResponse = await api.post("/process-large-file", data, {
+  timeout: 60000, // 1 minute
+});
+
+// Combined timeout and manual abort control
+const controller = new AbortController();
+
+// Set up manual cancellation after 30 seconds
+setTimeout(() => controller.abort(), 30000);
+
+const response = await api.get("/long-operation", {
+  timeout: 60000, // 1 minute timeout
+  signal: controller.signal, // Manual abort control
+});
+
+// The API automatically combines both timeout and manual abort signals
+```
+
+### Enhanced Abort Signal Handling
+
+```typescript
+const api = new ApiClient({
+  baseUrl: "https://api.example.com",
+});
+
+// Multiple abort signals are automatically combined
+const userController = new AbortController();
+const timeoutController = new AbortController();
+
+// User can cancel manually
+document.getElementById("cancel-btn").onclick = () => {
+  userController.abort();
+};
+
+// Automatic timeout cancellation
+setTimeout(() => timeoutController.abort(), 10000);
+
+const response = await api.get("/data", {
+  signal: userController.signal, // User control
+  timeout: 15000, // Automatic timeout (creates internal abort signal)
+  // Both signals are automatically combined using AbortSignal.any() or fallback
+});
+```
+
+### Timeout with Retry Logic
+
+```typescript
+const fetchWithRetry = async (url: string, maxRetries = 3) => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const response = await api.get(url, {
+      timeout: 5000,
+      showError: false, // Don't show error toast for retries
+    });
+
+    if (response.success) {
+      return response;
+    }
+
+    if (attempt < maxRetries) {
+      console.log(`Attempt ${attempt} failed, retrying...`);
+      await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+    }
+  }
+
+  // All retries failed
+  toast.error("Request failed after multiple attempts");
+  return null;
+};
+```
+
+## Combining Features
+
+Use multiple advanced features together for powerful functionality.
+
+### File Upload with Polling and Progress
+
+```typescript
+const uploadAndProcess = async (file: File) => {
+  // Step 1: Upload file with progress
+  const uploadResponse = await api.post("/files/upload", formData, {
+    onUploadProgress: (progress) => {
+      setUploadProgress(progress.percentage);
+    },
+    timeout: 30000, // 30 second upload timeout
+  });
+
+  if (!uploadResponse.success) return;
+
+  const fileId = uploadResponse.data.id;
+
+  // Step 2: Poll for processing status
+  const { finalResponse } = await api.poll(`/files/${fileId}/process`, {
+    interval: 2000,
+    maxAttempts: 30,
+    stopCondition: (response) => {
+      return response.data?.status === "completed";
+    },
+    onPollSuccess: (response, attempt) => {
+      setProcessingProgress(response.data.progress);
+    },
+  });
+
+  if (finalResponse.success) {
+    toast.success("File processed successfully!");
+  }
+};
+```
+
+### Real-time Dashboard with Polling
+
+```typescript
+const Dashboard = () => {
+  const [data, setData] = useState(null);
+  const [polling, setPolling] = useState(null);
+
+  const startPolling = async () => {
+    const { stop } = await api.poll("/dashboard/stats", {
+      interval: 5000, // Update every 5 seconds
+      onPollSuccess: (response) => {
+        setData(response.data);
+      },
+      onPollError: (response, attempt) => {
+        console.warn(`Poll attempt ${attempt} failed`);
+      },
+    });
+
+    setPolling({ stop });
+  };
+
+  const stopPolling = () => {
+    if (polling) {
+      polling.stop();
+      setPolling(null);
+    }
+  };
+
+  useEffect(() => {
+    startPolling();
+    return () => stopPolling(); // Cleanup on unmount
+  }, []);
+
+  return (
+    <div>
+      <button onClick={polling ? stopPolling : startPolling}>
+        {polling ? "Stop Live Updates" : "Start Live Updates"}
+      </button>
+      <DashboardStats data={data} />
+    </div>
+  );
+};
+```
+
+## Best Practices
+
+### 1. Use Appropriate Timeouts
+
+```typescript
+// Quick health checks
+const health = await api.get("/health", { timeout: 3000 });
+
+// File uploads
+const upload = await api.post("/upload", data, { timeout: 60000 });
+
+// Heavy processing
+const process = await api.post("/process", data, { timeout: 300000 });
+```
+
+### 2. Handle Progress Gracefully
+
+```typescript
+const handleUpload = async (file: File) => {
+  let lastProgress = 0;
+
+  await api.post("/upload", formData, {
+    onUploadProgress: (progress) => {
+      // Only update UI if progress changed significantly
+      if (progress.percentage - lastProgress >= 5) {
+        updateUI(progress.percentage);
+        lastProgress = progress.percentage;
+      }
+    },
+  });
+};
+```
+
+### 3. Smart Polling
+
+```typescript
+// Adaptive polling - slow down as time passes
+let pollInterval = 1000; // Start with 1 second
+
+const { finalResponse } = await api.poll("/status", {
+  interval: pollInterval,
+  onPollSuccess: (response, attempt) => {
+    // Gradually increase interval
+    if (attempt > 5) pollInterval = 5000; // 5 seconds after 5 attempts
+    if (attempt > 10) pollInterval = 10000; // 10 seconds after 10 attempts
+  },
+});
+```
+
+## Multiple Independent Polling Operations
+
+One of the most powerful features is the ability to run multiple polling operations simultaneously without interference.
+
+### Real-time Dashboard Example with Custom Poll IDs
+
+```typescript
+const Dashboard = () => {
+  const [orderData, setOrderData] = useState(null);
+  const [inventoryData, setInventoryData] = useState(null);
+  const [systemData, setSystemData] = useState(null);
+
+  // Define custom poll IDs for better management
+  const POLL_IDS = {
+    orders: "dashboard-orders",
+    inventory: "dashboard-inventory",
+    system: "dashboard-system",
+  };
+
+  const startMultiplePolling = async () => {
+    // Start 3 independent polling operations with custom IDs
+    const [orderResult, inventoryResult, systemResult] = await Promise.all([
+      // Orders polling - every 3 seconds
+      api.get("/dashboard/orders", {
+        poll: {
+          interval: 3000,
+          maxAttempts: 100,
+          pollId: POLL_IDS.orders, // Custom poll ID
+          onPollSuccess: (response, attempt) => {
+            setOrderData(response.data);
+            console.log(
+              `Orders (${POLL_IDS.orders}) updated - attempt ${attempt}`
+            );
+          },
+          stopCondition: () => false, // Run indefinitely
+        },
+      }),
+
+      // Inventory polling - every 10 seconds
+      api.get("/dashboard/inventory", {
+        poll: {
+          interval: 10000,
+          maxAttempts: 100,
+          pollId: POLL_IDS.inventory, // Custom poll ID
+          onPollSuccess: (response, attempt) => {
+            setInventoryData(response.data);
+            console.log(
+              `Inventory (${POLL_IDS.inventory}) updated - attempt ${attempt}`
+            );
+          },
+          stopCondition: () => false, // Run indefinitely
+        },
+      }),
+
+      // System health polling - every 5 seconds
+      api.get("/dashboard/system", {
+        poll: {
+          interval: 5000,
+          maxAttempts: 100,
+          pollId: POLL_IDS.system, // Custom poll ID
+          onPollSuccess: (response, attempt) => {
+            setSystemData(response.data);
+            console.log(
+              `System (${POLL_IDS.system}) updated - attempt ${attempt}`
+            );
+          },
+          stopCondition: () => false, // Run indefinitely
+        },
+      }),
+    ]);
+
+    // Verify poll IDs match our custom IDs
+    if (
+      "pollId" in orderResult &&
+      "pollId" in inventoryResult &&
+      "pollId" in systemResult
+    ) {
+      console.log(`Started polling with IDs:`, {
+        orders: orderResult.pollId,
+        inventory: inventoryResult.pollId,
+        system: systemResult.pollId,
+      });
+    }
+  };
+
+  // Stop specific polling operations by ID
+  const stopSpecificPolling = (type: keyof typeof POLL_IDS) => {
+    const pollId = POLL_IDS[type];
+    const stopped = api.stopPolling(pollId);
+
+    if (stopped) {
+      console.log(`Stopped ${type} polling (${pollId})`);
+    } else {
+      console.warn(`Failed to stop ${type} polling (${pollId})`);
+    }
+  };
+
+  useEffect(() => {
+    startMultiplePolling();
+    return () => {
+      // Cleanup all polling on unmount
+      Object.values(pollingControls).forEach((stop) => {
+        if (typeof stop === "function") stop();
+      });
+    };
+  }, []);
+
+  return (
+    <div>
+      <div className="controls">
+        <button onClick={() => stopSpecificPolling("orders")}>
+          Stop Orders Polling
+        </button>
+        <button onClick={() => stopSpecificPolling("inventory")}>
+          Stop Inventory Polling
+        </button>
+        <button onClick={() => stopSpecificPolling("system")}>
+          Stop System Polling
+        </button>
+      </div>
+
+      <div className="dashboard-grid">
+        <OrdersWidget data={orderData} />
+        <InventoryWidget data={inventoryData} />
+        <SystemHealthWidget data={systemData} />
+      </div>
+    </div>
+  );
+};
+```
+
+### Key Benefits of Independent Polling:
+
+- **🔄 No Interference**: Each polling operation runs on its own schedule
+- **⏱️ Different Intervals**: Orders (3s), Inventory (10s), System (5s) - all independent
+- **🎛️ Individual Control**: Stop/start each polling operation separately
+- **⚡ Parallel Execution**: All polling happens simultaneously using Promise.all
+- **💾 Resource Efficient**: Each poll only makes requests when needed
+- **🛑 Manual Stop**: Can stop any polling operation at any time
+- **🔧 Flexible Conditions**: Each poll can have different stop conditions
+
+### Testing Multiple Polling Operations
+
+```typescript
+// Test that multiple polling operations don't interfere
+const testIndependentPolling = async () => {
+  let poll1Count = 0;
+  let poll2Count = 0;
+  let poll3Count = 0;
+
+  const [result1, result2, result3] = await Promise.all([
+    api.get("/endpoint1", {
+      poll: {
+        interval: 500,
+        maxAttempts: 3,
+        onPollSuccess: () => poll1Count++,
+        stopCondition: () => poll1Count >= 2,
+      },
+    }),
+
+    api.get("/endpoint2", {
+      poll: {
+        interval: 800,
+        maxAttempts: 4,
+        onPollSuccess: () => poll2Count++,
+        stopCondition: () => poll2Count >= 3,
+      },
+    }),
+
+    api.get("/endpoint3", {
+      poll: {
+        interval: 300,
+        maxAttempts: 5,
+        onPollSuccess: () => poll3Count++,
+        stopCondition: () => poll3Count >= 2,
+      },
+    }),
+  ]);
+
+  // Each polling operation completes independently
+  console.log(`Poll 1: ${result1.attempts} attempts`);
+  console.log(`Poll 2: ${result2.attempts} attempts`);
+  console.log(`Poll 3: ${result3.attempts} attempts`);
+};
+```
+
+## Poll ID Management
+
+Control and manage individual polling operations with custom IDs for precise control.
+
+### Custom Poll IDs
+
+Assign meaningful IDs to your polling operations for better organization and control:
+
+```typescript
+const api = new ApiClient({
+  baseUrl: "https://api.example.com",
+});
+
+// Start polling with custom ID
+const result = await api.get("/user/notifications", {
+  poll: {
+    interval: 5000,
+    pollId: "user-notifications", // Custom meaningful ID
+    onPollSuccess: (response, attempt) => {
+      updateNotifications(response.data);
+    },
+  },
+});
+
+console.log(`Started polling with ID: ${result.pollId}`); // "user-notifications"
+```
+
+### Stop Specific Polling Operations
+
+Stop individual polling operations without affecting others:
+
+```typescript
+// Stop specific polling operation
+const stopped = api.stopPolling("user-notifications");
+
+if (stopped) {
+  console.log("Successfully stopped user notifications polling");
+} else {
+  console.log("Polling operation not found or already stopped");
+}
+
+// Check remaining active polls
+console.log(`Active polls remaining: ${api.getActivePollingCount()}`);
+```
+
+### Prevent Duplicate Poll IDs
+
+The API prevents duplicate poll IDs to avoid conflicts:
+
+```typescript
+try {
+  // Start first polling operation
+  const poll1 = api.get("/data", {
+    poll: {
+      interval: 1000,
+      pollId: "my-poll",
+    },
+  });
+
+  // Try to start another with same ID - this will throw an error
+  const poll2 = api.get("/other-data", {
+    poll: {
+      interval: 2000,
+      pollId: "my-poll", // Duplicate ID!
+    },
+  });
+} catch (error) {
+  console.error(error.message); // "Polling operation with ID 'my-poll' already exists"
+}
+```
+
+### Dynamic Poll ID Generation
+
+Create dynamic poll IDs based on your application logic:
+
+```typescript
+const startUserSpecificPolling = (userId: string, dataType: string) => {
+  const pollId = `user-${userId}-${dataType}`;
+
+  return api.get(`/users/${userId}/${dataType}`, {
+    poll: {
+      interval: 3000,
+      pollId: pollId,
+      onPollSuccess: (response, attempt) => {
+        console.log(`User ${userId} ${dataType} updated (attempt ${attempt})`);
+        updateUserData(userId, dataType, response.data);
+      },
+    },
+  });
+};
+
+// Start polling for different users and data types
+startUserSpecificPolling("123", "profile");
+startUserSpecificPolling("123", "settings");
+startUserSpecificPolling("456", "profile");
+
+// Stop specific user's profile polling
+api.stopPolling("user-123-profile");
+```
+
+### Poll ID Best Practices
+
+```typescript
+// ✅ Good - Descriptive and unique IDs
+const POLL_IDS = {
+  USER_NOTIFICATIONS: "user-notifications",
+  SYSTEM_HEALTH: "system-health-check",
+  ORDER_STATUS: (orderId: string) => `order-status-${orderId}`,
+  FILE_PROCESSING: (fileId: string) => `file-processing-${fileId}`,
+};
+
+// ✅ Good - Namespace your poll IDs
+const createPollId = (module: string, feature: string, id?: string) => {
+  return id ? `${module}-${feature}-${id}` : `${module}-${feature}`;
+};
+
+const pollId = createPollId("dashboard", "orders", "live-updates");
+// Result: "dashboard-orders-live-updates"
+
+// ✅ Good - Check if poll exists before starting
+const startPollingIfNotExists = async (pollId: string, endpoint: string) => {
+  // Check if already polling
+  if (api.getActivePollingCount() > 0) {
+    // You could implement a method to check specific poll ID exists
+    console.log("Polling may already be active");
+  }
+
+  try {
+    const result = await api.get(endpoint, {
+      poll: {
+        interval: 2000,
+        pollId: pollId,
+        onPollSuccess: (response) => {
+          console.log(`Poll ${pollId} success:`, response.data);
+        },
+      },
+    });
+
+    return result;
+  } catch (error) {
+    if (error.message.includes("already exists")) {
+      console.log(`Poll ${pollId} is already running`);
+      return null;
+    }
+    throw error;
+  }
+};
+```
+
+## Memory Management & Cleanup
+
+Prevent memory leaks and properly manage resources with built-in cleanup methods.
+
+### Destroying API Client
+
+```typescript
+import ApiClient from "hmm-api";
+
+const api = new ApiClient({
+  baseUrl: "https://api.example.com",
+});
+
+// Start some polling operations
+const pollingResult = api.get("/status", {
+  poll: {
+    interval: 2000,
+    maxAttempts: 100,
+  },
+});
+
+// Later, when component unmounts or app closes
+api.destroy(); // Stops all polling, clears resources, prevents memory leaks
+
+// Any further API calls will throw an error
+try {
+  await api.get("/test"); // This will throw
+} catch (error) {
+  console.log(error.message); // "ApiClient has been destroyed and cannot be used"
+}
+```
+
+### Managing Multiple Polling Operations
+
+```typescript
+const api = new ApiClient({
+  baseUrl: "https://api.example.com",
+});
+
+// Start multiple polling operations with custom IDs
+const dashboard = async () => {
+  const [orders, inventory, system] = await Promise.all([
+    api.get("/orders", {
+      poll: {
+        interval: 3000,
+        pollId: "dashboard-orders",
+      },
+    }),
+    api.get("/inventory", {
+      poll: {
+        interval: 5000,
+        pollId: "dashboard-inventory",
+      },
+    }),
+    api.get("/system", {
+      poll: {
+        interval: 2000,
+        pollId: "dashboard-system",
+      },
+    }),
+  ]);
+};
+
+// Check how many polling operations are active
+console.log(`Active polls: ${api.getActivePollingCount()}`); // e.g., "Active polls: 3"
+
+// Get all active poll IDs
+const activeIds = api.getActivePollingIds();
+console.log("Active poll IDs:", activeIds); // ["dashboard-orders", "dashboard-inventory", "dashboard-system"]
+
+// Stop specific polling operation
+const stopped = api.stopPolling("dashboard-orders");
+console.log(`Orders polling stopped: ${stopped}`); // true
+
+// Stop all polling operations at once
+api.stopAllPolling();
+console.log(`Active polls: ${api.getActivePollingCount()}`); // "Active polls: 0"
+
+// Individual polling operations can still be stopped from their result
+if ("stop" in result) {
+  result.stop(); // Stop this specific polling operation
+}
+```
+
+### React Component Cleanup Example
+
+```typescript
+import { useEffect, useRef } from "react";
+import ApiClient from "hmm-api";
+
+const Dashboard = () => {
+  const apiRef = useRef(null);
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    // Create API client
+    apiRef.current = new ApiClient({
+      baseUrl: "https://api.example.com",
+    });
+
+    // Start polling
+    const startPolling = async () => {
+      const result = await apiRef.current.get("/dashboard", {
+        poll: {
+          interval: 5000,
+          onPollSuccess: (response) => {
+            setData(response.data);
+          },
+        },
+      });
+    };
+
+    startPolling();
+
+    // Cleanup function
+    return () => {
+      if (apiRef.current) {
+        apiRef.current.destroy(); // Proper cleanup
+        apiRef.current = null;
+      }
+    };
+  }, []);
+
+  return <div>{/* Your dashboard UI */}</div>;
+};
+```
+
+## Enhanced Error Handling & Validation
+
+Better error management with automatic cleanup, input validation, and prevention of operations on destroyed clients.
+
+### Input Validation
+
+The API client now includes comprehensive input validation to prevent common errors:
+
+```typescript
+const api = new ApiClient({
+  baseUrl: "https://api.example.com",
+  timeout: 30000, // Automatically capped at 5 minutes maximum
+});
+
+// These will throw validation errors:
+try {
+  api.setAuthToken(123); // Error: Auth token must be a string or null
+  api.setGlobalHeaders("invalid"); // Error: Headers must be an object
+  api.setShowGlobalError("true"); // Error: showGlobalError must be a boolean
+
+  // Invalid polling configuration
+  await api.get("/test", {
+    poll: {
+      interval: -1000, // Error: Polling interval must be greater than 0
+      maxAttempts: 0, // Error: Max attempts must be greater than 0
+      pollId: "", // Error: Poll ID must be a non-empty string
+    },
+  });
+} catch (error) {
+  console.error("Validation error:", error.message);
+}
+```
+
+### Enhanced Error Parsing
+
+Improved error message parsing handles multiple error formats:
+
+```typescript
+const api = new ApiClient({
+  returnParsedError: true,
+  onError: (response) => {
+    // Now handles various error formats:
+    // - { message: "Error message" }
+    // - { error: { message: "Nested error" } }
+    // - { detail: "Detail message" }
+    // - { msg: "Message field" }
+    // - Plain strings
+    // - Complex objects (JSON stringified)
+    console.error("Clean error:", response.error);
+  },
+});
+```
+
+### Automatic Cleanup on Errors
+
+```typescript
+const api = new ApiClient({
+  baseUrl: "https://api.example.com",
+  onError: (response) => {
+    console.error("Request failed:", response.error);
+
+    // Automatic cleanup happens internally
+    // No memory leaks from failed requests
+  },
+});
+
+// Even if requests fail, resources are properly cleaned up
+const failedRequest = await api.get("/nonexistent-endpoint");
+```
+
+### Input Validation & Safe Operations
+
+```typescript
+const api = new ApiClient({
+  timeout: 600000, // Automatically capped at 5 minutes (300000ms)
+});
+
+// Input validation prevents common errors
+try {
+  api.setAuthToken(123); // Error: Auth token must be a string or null
+  api.setGlobalHeaders("invalid"); // Error: Headers must be an object
+
+  await api.get("/test", {
+    poll: {
+      interval: -1000, // Error: Polling interval must be greater than 0
+      pollId: "", // Error: Poll ID must be a non-empty string
+    },
+  });
+} catch (error) {
+  console.error("Validation prevented invalid operation:", error.message);
+}
+```
+
+### Safe Callback Execution
+
+```typescript
+const api = new ApiClient({
+  onError: (response) => {
+    // Even if this callback throws, it won't break the client
+    throw new Error("Callback error!");
+  },
+  onSuccess: (response) => {
+    // Safe execution prevents client corruption
+    someUndefinedFunction(); // Won't crash the client
+  },
+});
+
+// Client continues to work even if callbacks fail
+const response = await api.get("/test");
+```
+
+### Destroyed Client Protection
+
+```typescript
+const api = new ApiClient();
+
+// Start some operations
+const polling = api.get("/status", {
+  poll: { interval: 1000 },
+});
+
+// Destroy the client
+api.destroy();
+
+// All subsequent operations are safely prevented
+try {
+  api.setAuthToken("new-token"); // Throws error
+  api.get("/test"); // Throws error
+  api.stopAllPolling(); // Safe to call, but no-op
+} catch (error) {
+  console.log("Protected from using destroyed client");
+}
+
+// Destroying multiple times is safe
+api.destroy(); // No error, already destroyed
+```
+
+## Enhanced Progress Tracking
+
+Improved progress tracking with better cleanup and error handling.
+
+### Upload Progress with Cleanup
+
+```typescript
+const uploadWithCleanup = async (file: File) => {
+  const api = new ApiClient({
+    baseUrl: "https://api.example.com",
+  });
+
+  let progressInterval = null;
+
+  try {
+    const response = await api.post("/upload", formData, {
+      onUploadProgress: (progress) => {
+        // Progress tracking with automatic cleanup
+        console.log(`Upload: ${progress.percentage}%`);
+        updateProgressBar(progress.percentage);
+      },
+      onDownloadProgress: (progress) => {
+        // Download progress also has automatic cleanup
+        console.log(`Download: ${progress.percentage}%`);
+      },
+      timeout: 30000,
+    });
+
+    return response;
+  } finally {
+    // Cleanup happens automatically, but you can also destroy if needed
+    // api.destroy(); // Optional explicit cleanup
+  }
+};
+```
+
+### Progress with Abort Handling
+
+```typescript
+const uploadWithAbort = async (file: File) => {
+  const controller = new AbortController();
+
+  // Set up abort after 10 seconds
+  setTimeout(() => controller.abort(), 10000);
+
+  const response = await api.post("/upload", formData, {
+    signal: controller.signal, // Pass abort signal
+    onUploadProgress: (progress) => {
+      console.log(`Upload: ${progress.percentage}%`);
+
+      // Progress tracking automatically stops when aborted
+      if (controller.signal.aborted) {
+        console.log("Upload aborted, progress stopped");
+      }
+    },
+  });
+};
+```
+
+## Best Practices for Memory Management
+
+### 1. Always Cleanup in React
+
+```typescript
+// ✅ Good - Proper cleanup
+const useApiClient = () => {
+  const apiRef = useRef(null);
+
+  useEffect(() => {
+    apiRef.current = new ApiClient({ baseUrl: "/api" });
+
+    return () => {
+      apiRef.current?.destroy();
+    };
+  }, []);
+
+  return apiRef.current;
+};
+
+// ❌ Bad - No cleanup, potential memory leaks
+const useApiClient = () => {
+  const [api] = useState(() => new ApiClient({ baseUrl: "/api" }));
+  return api; // No cleanup!
+};
+```
+
+### 2. Monitor Active Polling
+
+```typescript
+const api = new ApiClient();
+
+// Periodically check active polling operations
+const monitorPolling = () => {
+  const activeCount = api.getActivePollingCount();
+
+  if (activeCount > 10) {
+    console.warn(`High number of active polls: ${activeCount}`);
+    // Consider stopping some polls
+    api.stopAllPolling();
+  }
+};
+
+setInterval(monitorPolling, 30000); // Check every 30 seconds
+```
+
+### 3. Graceful Shutdown
+
+```typescript
+// Application shutdown handler
+const gracefulShutdown = () => {
+  console.log("Shutting down application...");
+
+  // Stop all API operations
+  api.stopAllPolling();
+
+  // Destroy API client
+  api.destroy();
+
+  console.log("Cleanup completed");
+};
+
+// Register shutdown handlers
+process.on("SIGTERM", gracefulShutdown);
+process.on("SIGINT", gracefulShutdown);
+window.addEventListener("beforeunload", gracefulShutdown);
+```
+
+### 4. Error Recovery
+
+```typescript
+const createResilientApiClient = () => {
+  let api = new ApiClient({ baseUrl: "/api" });
+
+  const recreateClient = () => {
+    if (api) {
+      api.destroy(); // Clean up old client
+    }
+    api = new ApiClient({ baseUrl: "/api" });
+  };
+
+  const makeRequest = async (url, options = {}) => {
+    try {
+      return await api.get(url, options);
+    } catch (error) {
+      if (error.message.includes("destroyed")) {
+        console.log("Client was destroyed, recreating...");
+        recreateClient();
+        return await api.get(url, options); // Retry with new client
+      }
+      throw error;
+    }
+  };
+
+  return { makeRequest, destroy: () => api.destroy() };
+};
+```
+
+## Configuration Reference
+
+### Complete Configuration Example
+
+```typescript
+import ApiClient from "hmm-api";
+
+const api = new ApiClient({
+  // Basic configuration
+  baseUrl: "https://api.example.com",
+  timeout: 30000, // 30 seconds (automatically capped at 5 minutes)
+  credentials: "include",
+
+  // Error and success handling
+  showGlobalError: true, // Enable global error callbacks
+  showGlobalSuccess: false, // Disable global success callbacks
+  returnParsedError: true, // Get clean error messages
+
+  // Global headers (immutable after setting)
+  globalHeaders: {
+    "X-API-Version": "v2",
+    "X-Client-ID": "web-app",
+  },
+
+  // Global callbacks (with safe execution)
+  onSuccess: (response) => {
+    console.log("✅ Request succeeded:", response.status);
+    // Even if this throws an error, it won't break the client
+  },
+  onError: (response) => {
+    console.error("❌ Request failed:", response.error);
+    // Safe callback execution prevents client corruption
+    if (response.status === 401) {
+      redirectToLogin();
+    }
+  },
+});
+
+// Input validation prevents invalid configurations
+try {
+  const invalidApi = new ApiClient({
+    timeout: -1000, // Error: Timeout must be a positive number
+    baseUrl: 123, // Error: BaseUrl must be a string or null
+  });
+} catch (error) {
+  console.error("Configuration error:", error.message);
+}
+```
+
+### Method Reference
+
+```typescript
+// Instance methods for configuration
+api.setAuthToken("Bearer your-token");
+api.setGlobalHeaders({ "X-Custom": "value" });
+api.setShowGlobalError(false);
+api.setShowGlobalSuccess(true);
+api.setOnSuccess(newSuccessCallback);
+api.setOnError(newErrorCallback);
+
+// Memory management methods
+api.getActivePollingCount(); // Returns number of active polls
+api.getActivePollingIds(); // Returns array of active poll IDs
+api.stopAllPolling(); // Stop all polling operations
+api.stopPolling("custom-poll-id"); // Stop specific polling operation by ID
+api.destroy(); // Complete cleanup and destroy client
+
+// Request methods with all options
+const response = await api.get("/endpoint", {
+  // Override global settings
+  showError: false,
+  showSuccess: true,
+  timeout: 10000,
+
+  // Progress tracking
+  onDownloadProgress: (progress) => {
+    console.log(`Download: ${progress.percentage}%`);
+  },
+
+  // Polling configuration
+  poll: {
+    interval: 2000,
+    maxAttempts: 10,
+    pollId: "my-custom-poll-id", // Optional custom poll ID
+    stopCondition: (response) => response.data.ready,
+    onPollSuccess: (response, attempt) => {
+      console.log(`Poll ${attempt}: ${response.data.status}`);
+    },
+    onPollError: (response, attempt) => {
+      console.warn(`Poll ${attempt} failed: ${response.error}`);
+    },
+  },
+
+  // Callbacks
+  onSuccess: (response) => {
+    console.log("Request-specific success");
+  },
+  onError: (response) => {
+    console.error("Request-specific error");
+  },
+  finally: () => {
+    console.log("Cleanup after request");
+  },
+});
+```
+
+## Migration from v1.x
+
+If you're upgrading from v1.x, here are the key changes:
+
+### Property Name Updates
+
+```typescript
+// Old (v1.x) - Still works but deprecated
+const api = new ApiClient({
+  showGlobalErrorToast: true,
+  showGlobalSuccessToast: false,
+});
+
+// New (v2.0.0) - Recommended
+const api = new ApiClient({
+  showGlobalError: true,
+  showGlobalSuccess: false,
+});
+```
+
+### Enhanced Capabilities
+
+```typescript
+// v1.x - Basic functionality
+const response = await api.get("/data");
+
+// v2.0.0 - Enhanced with new features
+const response = await api.get("/data", {
+  timeout: 5000,
+  onDownloadProgress: (progress) => updateProgress(progress.percentage),
+  poll: {
+    interval: 1000,
+    stopCondition: (response) => response.data.ready,
+  },
+  finally: () => hideLoader(),
+});
+```
+
+## Enhanced Reliability & Compatibility
+
+### Browser Compatibility & Fallbacks
+
+The API client includes automatic fallbacks for older browsers:
+
+```typescript
+const api = new ApiClient({
+  baseUrl: "https://api.example.com",
+});
+
+// Automatic fallbacks for:
+// - AbortSignal.any() (falls back to manual signal combination)
+// - Modern fetch features (graceful degradation)
+// - Console methods (safe execution in environments without console)
+
+const controller1 = new AbortController();
+const controller2 = new AbortController();
+
+// Works in all browsers with automatic fallback
+const response = await api.get("/data", {
+  signal: controller1.signal,
+  timeout: 10000, // Creates internal timeout signal
+  // Both signals are combined automatically
+});
+```
+
+### Immutable Configuration
+
+Global headers and other configurations are immutable to prevent accidental modifications:
+
+```typescript
+const api = new ApiClient({
+  globalHeaders: {
+    "X-API-Version": "v2",
+    Authorization: "Bearer token",
+  },
+});
+
+// Headers are frozen - this won't affect the original
+const headers = api.globalHeaders;
+headers["X-API-Version"] = "v3"; // This won't change the actual headers
+
+// Use setGlobalHeaders to properly update
+api.setGlobalHeaders({
+  "X-API-Version": "v3", // This will work correctly
+});
+```
+
+### Robust Error Recovery
+
+The client continues to work even when callbacks or other operations fail:
+
+```typescript
+const api = new ApiClient({
+  onSuccess: (response) => {
+    // Even if this throws an error, the client continues to work
+    throw new Error("Callback failed!");
+  },
+  onError: (response) => {
+    // Safe execution prevents client corruption
+    undefinedFunction(); // Won't crash the client
+  },
+});
+
+// Client remains functional despite callback errors
+const response1 = await api.get("/test1"); // Works
+const response2 = await api.get("/test2"); // Still works
+```
+
+### Memory-Safe Operations
+
+All operations are designed to prevent memory leaks:
+
+```typescript
+const api = new ApiClient();
+
+// Start multiple operations
+const polling1 = api.get("/status", { poll: { interval: 1000 } });
+const polling2 = api.get("/health", { poll: { interval: 2000 } });
+
+// Automatic cleanup on destroy
+api.destroy();
+
+// All resources are properly cleaned up:
+// - Polling intervals cleared
+// - Event listeners removed
+// - References nullified
+// - No memory leaks
+
+console.log(api.getActivePollingCount()); // 0
+```
+
+### Enhanced Error Messages
+
+Comprehensive error messages help with debugging:
+
+```typescript
+const api = new ApiClient();
+
+try {
+  // Various validation errors provide clear messages
+  api.setAuthToken(123); // "Auth token must be a string or null"
+  api.setGlobalHeaders("invalid"); // "Headers must be an object"
+
+  await api.get("/test", {
+    poll: {
+      interval: -1000, // "Polling interval must be greater than 0"
+      maxAttempts: 0, // "Max attempts must be greater than 0"
+      pollId: "", // "Poll ID must be a non-empty string"
+    },
+  });
+
+  await api.get("invalid-url"); // "Invalid URL: invalid-url"
+} catch (error) {
+  console.error("Clear error message:", error.message);
+}
+```
+
+These enhanced features make hmm-api v2.0.0 perfect for modern web applications that need real-time updates, file handling, robust error management, proper memory management, and enterprise-grade reliability!

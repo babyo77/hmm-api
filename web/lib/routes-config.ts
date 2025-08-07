@@ -31,7 +31,6 @@ export const ROUTES: EachRoute[] = [
       { title: "Delete", href: "/delete" },
       { title: "Patch", href: "/patch" },
       { title: "Put", href: "/put" },
-      { title: "Other", href: "/other" },
     ],
   },
   {
@@ -39,6 +38,9 @@ export const ROUTES: EachRoute[] = [
     href: "/others",
     noLink: true,
     items: [
+      { title: "Advanced Features", href: "/advanced-features" },
+      { title: "Callbacks", href: "/callbacks" },
+      { title: "Migrations", href: "/migration" },
       { title: "Websites", href: "/websites" },
       { title: "Examples", href: "/example" },
     ],

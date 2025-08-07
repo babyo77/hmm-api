@@ -1,115 +1,244 @@
-# Using GET Method in hmm-api
+# GET Method - Global Error Handling
 
-## Basic Usage
+## Why Use Global Error Handling?
 
-### 1. Import and Create API Client
+Instead of handling errors in every single GET request, configure it once globally and let hmm-api handle all errors automatically.
 
-```typescript
-import ApiClient from "hmm-api";
-
-// Create an API client
-const api = new ApiClient();
-```
-
-### 2. Simple GET Request
+## Complete Example
 
 ```typescript
-// Fetch users
-const response = await api.get("/users");
+import ApiClient, { parseResponseMessage } from "hmm-api";
+import { toast } from "sonner";
 
-// Check if request was successful
-if (response.success) {
-  // Access the data
-  const users = response.data;
-  console.log(users);
-} else {
-  // Handle any errors
-  console.error(response.error);
-}
-```
+// Configure once - handles ALL GET requests
+const api = new ApiClient({
+  baseUrl: "https://api.example.com",
+  returnParsedError: true,
+  onError: (response) => {
+    // Handle ALL errors globally
+    toast.error(response.error);
 
-## Advanced Usage
+    if (response.status === 401) {
+      redirectToLogin();
+    }
+  },
+});
 
-### With Type Safety
-
-```typescript
-// Define an interface for your data
+// Usage - No error handling needed!
 interface User {
   id: number;
   name: string;
   email: string;
 }
 
-// Typed GET request
-const response = await api.get<User>("/users/1");
+const UserComponent = () => {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
 
-if (response.success) {
-  // TypeScript knows the exact shape of the data
-  const user = response.data;
-  console.log(user.name); // Fully typed!
-}
+  const fetchUsers = async () => {
+    setLoading(true);
+
+    // Simple GET - errors handled automatically
+    const response = await api.get<User[]>("/users", {
+      finally: () => setLoading(false),
+    });
+
+    if (response.success) {
+      setUsers(response.data);
+    }
+  };
+
+  const fetchUserById = async (id: number) => {
+    const response = await api.get<User>(`/users/${id}`);
+    // No error handling needed - global config handles it!
+
+    if (response.success) {
+      return response.data;
+    }
+  };
+
+  return (
+    <div>
+      <button onClick={fetchUsers} disabled={loading}>
+        {loading ? "Loading..." : "Fetch Users"}
+      </button>
+      {/* Render users */}
+    </div>
+  );
+};
 ```
 
-### Custom Options
+## Key Benefits
 
-#### Add Headers
+- **No repetitive error handling** - Configure once, works everywhere
+- **Consistent UX** - All errors shown the same way
+- **Clean code** - Focus on data, not error handling
+- **Global auth handling** - 401 errors handled automatically
 
-```typescript
-const response = await api.get("/users", {
-  headers: {
-    "X-Custom-Header": "Some Value",
-  },
-});
-```
+## Advanced GET Features (v2.0.0)
 
-#### Control Error Toasts
+### Polling with GET
 
-```typescript
-// Disable error notifications for this request
-const response = await api.get("/users", {
-  showErrorToast: false,
-});
-```
-
-#### Add a Cleanup Function
+Perfect for checking job status, waiting for data updates, or real-time monitoring:
 
 ```typescript
-const response = await api.get("/users", {
-  finally: () => {
-    // This runs after the request, whether it succeeds or fails
-    hideLoadingSpinner();
-  },
-});
-```
+const checkJobStatus = async (jobId: string) => {
+  const customPollId = `job-status-${jobId}`;
 
-## Full Example
-
-```typescript
-import ApiClient from "hmm-api";
-
-// Assuming you have a toast library configured
-const api = new ApiClient({
-  toast: yourToastLibrary,
-});
-
-async function fetchUserProfile() {
-  // Get user profile
-  const response = await api.get<UserProfile>("/profile", {
-    headers: {
-      Authorization: `Bearer ${yourAuthToken}`,
+  const result = await api.get(`/jobs/${jobId}/status`, {
+    poll: {
+      interval: 2000, // Check every 2 seconds
+      maxAttempts: 30, // Stop after 30 attempts
+      pollId: customPollId, // Custom poll ID for this job
+      stopCondition: (response) => {
+        // Stop when job is complete
+        return response.success && response.data.status === "completed";
+      },
+      onPollSuccess: (response, attempt) => {
+        console.log(
+          `Job ${jobId} - Attempt ${attempt}: ${response.data.progress}%`
+        );
+        updateProgressBar(response.data.progress);
+      },
     },
-    showErrorToast: true,
+  });
+
+  // Check if it's a polling result
+  if ("finalResponse" in result) {
+    console.log(`Job ${jobId} completed after ${result.attempts} attempts`);
+    console.log(`Poll ID: ${result.pollId}`); // Custom poll ID
+    return result.finalResponse.data;
+  }
+};
+
+// Cancel job status checking from anywhere in your app
+const cancelJobStatusCheck = (jobId: string) => {
+  const pollId = `job-status-${jobId}`;
+  const stopped = api.stopPolling(pollId);
+
+  if (stopped) {
+    console.log(`Cancelled status checking for job ${jobId}`);
+  }
+};
+```
+
+### Download Progress with GET
+
+Track download progress for large files:
+
+```typescript
+const downloadFile = async (fileId: string) => {
+  const response = await api.get(`/files/${fileId}/download`, {
+    onDownloadProgress: (progress) => {
+      console.log(`Download: ${progress.percentage}%`);
+      updateDownloadProgress(progress.percentage);
+
+      // Show detailed progress
+      console.log(`${progress.loaded} / ${progress.total} bytes`);
+    },
+    timeout: 60000, // 1 minute timeout for large files
   });
 
   if (response.success) {
-    displayProfile(response.data);
+    saveFile(response.data);
   }
-}
+};
 ```
 
-## Quick Tips
+### Multiple Polling Operations
 
-- Always check `response.success` before using `response.data`
-- Use TypeScript generics for type-safe responses
-- Configure global settings when creating the ApiClient
-- Easily handle different types of errors
+Run multiple GET polling operations simultaneously:
+
+```typescript
+const Dashboard = () => {
+  const [data, setData] = useState({});
+
+  // Define poll IDs for better management
+  const POLL_IDS = {
+    orders: "dashboard-orders",
+    inventory: "dashboard-inventory",
+    system: "dashboard-system",
+  };
+
+  const startMultiplePolling = async () => {
+    // Start 3 independent polling operations with custom IDs
+    const [orders, inventory, system] = await Promise.all([
+      api.get("/dashboard/orders", {
+        poll: {
+          interval: 3000,
+          pollId: POLL_IDS.orders, // Custom poll ID
+          onPollSuccess: (response) => {
+            setData((prev) => ({ ...prev, orders: response.data }));
+          },
+        },
+      }),
+
+      api.get("/dashboard/inventory", {
+        poll: {
+          interval: 5000,
+          pollId: POLL_IDS.inventory, // Custom poll ID
+          onPollSuccess: (response) => {
+            setData((prev) => ({ ...prev, inventory: response.data }));
+          },
+        },
+      }),
+
+      api.get("/dashboard/system", {
+        poll: {
+          interval: 2000,
+          pollId: POLL_IDS.system, // Custom poll ID
+          onPollSuccess: (response) => {
+            setData((prev) => ({ ...prev, system: response.data }));
+          },
+        },
+      }),
+    ]);
+
+    // Verify poll IDs
+    console.log("Started polls:", {
+      orders: orders.pollId,
+      inventory: inventory.pollId,
+      system: system.pollId,
+    });
+    console.log(`Active polls: ${api.getActivePollingCount()}`); // 3
+  };
+
+  const stopSpecificPolling = (type: keyof typeof POLL_IDS) => {
+    const stopped = api.stopPolling(POLL_IDS[type]);
+    console.log(`Stopped ${type} polling: ${stopped}`);
+  };
+
+  const stopAllPolling = () => {
+    api.stopAllPolling();
+    console.log(`Active polls: ${api.getActivePollingCount()}`); // 0
+  };
+
+  return (
+    <div>
+      <button onClick={startMultiplePolling}>Start Dashboard Polling</button>
+      <button onClick={stopAllPolling}>Stop All Polling</button>
+      {/* Render dashboard data */}
+    </div>
+  );
+};
+```
+
+## When to Override Global Handling
+
+Only override when you need specific behavior for a particular request:
+
+```typescript
+// Special case: Silent error for optional data
+const response = await api.get("/optional-data", {
+  showError: false, // Don't show toast for this one
+  onError: (response) => {
+    console.log("Optional data not available, using defaults");
+    useDefaultData();
+  },
+});
+
+// Special case: Custom timeout for slow endpoints
+const response = await api.get("/heavy-computation", {
+  timeout: 120000, // 2 minutes for heavy operations
+});
+```
