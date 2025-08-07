@@ -846,20 +846,21 @@ class ApiClient {
 
           if (response.success) {
             this.safeCallCallback(() => onPollSuccess?.(response, attempts));
-
-            if (stopCondition?.(response)) {
-              cleanup();
-              resolve({
-                pollId: pollingId,
-                finalResponse: finalResponse,
-                attempts,
-                stopped: true,
-                stop,
-              });
-              return;
-            }
           } else {
             this.safeCallCallback(() => onPollError?.(response, attempts));
+          }
+
+          // Check stop condition regardless of success/failure
+          if (stopCondition?.(response)) {
+            cleanup();
+            resolve({
+              pollId: pollingId,
+              finalResponse: finalResponse,
+              attempts,
+              stopped: true,
+              stop,
+            });
+            return;
           }
 
           if (!this.isDestroyed && !stopped && attempts < maxAttempts) {

@@ -1,6 +1,6 @@
 {
   "name": "hmm-api",
-  "version": "2.0.3",
+  "version": "2.0.31",
   "description": "Write less, debug less, and focus on what matters!",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
