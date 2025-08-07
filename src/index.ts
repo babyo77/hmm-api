@@ -263,6 +263,9 @@ class ApiClient {
     if (error?.message && typeof error.message === "string") {
       return { message: error.message };
     }
+    if (error?.error && typeof error.message === "string") {
+      return { message: error.error };
+    }
 
     if (error?.error?.message && typeof error.error.message === "string") {
       return { message: error.error.message };
@@ -903,6 +906,34 @@ class ApiClient {
     return pollingPromise;
   }
 
+  // Method overloads for better TypeScript support
+  async get<T>(
+    url: string,
+    options: RequestInit & {
+      showError?: boolean;
+      showSuccess?: boolean;
+      headers?: Record<string, string>;
+      finally?: () => void;
+      onSuccess?: OnSuccessCallback;
+      onError?: OnErrorCallback;
+      onDownloadProgress?: ProgressCallback;
+      timeout?: number;
+      poll: PollingConfig<T>;
+    }
+  ): Promise<PollingResult<T>>;
+  async get<T>(
+    url: string,
+    options?: RequestInit & {
+      showError?: boolean;
+      showSuccess?: boolean;
+      headers?: Record<string, string>;
+      finally?: () => void;
+      onSuccess?: OnSuccessCallback;
+      onError?: OnErrorCallback;
+      onDownloadProgress?: ProgressCallback;
+      timeout?: number;
+    }
+  ): Promise<ApiResponse<T>>;
   async get<T>(
     url: string,
     options: RequestInit & {
@@ -920,6 +951,38 @@ class ApiClient {
     return this.request<T>(url, "GET", options);
   }
 
+  // Method overloads for POST
+  async post<T>(
+    url: string,
+    data: any,
+    options: RequestInit & {
+      showError?: boolean;
+      showSuccess?: boolean;
+      headers?: Record<string, string>;
+      finally?: () => void;
+      onSuccess?: OnSuccessCallback;
+      onError?: OnErrorCallback;
+      onUploadProgress?: ProgressCallback;
+      onDownloadProgress?: ProgressCallback;
+      timeout?: number;
+      poll: PollingConfig<T>;
+    }
+  ): Promise<PollingResult<T>>;
+  async post<T>(
+    url: string,
+    data: any,
+    options?: RequestInit & {
+      showError?: boolean;
+      showSuccess?: boolean;
+      headers?: Record<string, string>;
+      finally?: () => void;
+      onSuccess?: OnSuccessCallback;
+      onError?: OnErrorCallback;
+      onUploadProgress?: ProgressCallback;
+      onDownloadProgress?: ProgressCallback;
+      timeout?: number;
+    }
+  ): Promise<ApiResponse<T>>;
   async post<T>(
     url: string,
     data: any,
@@ -1014,6 +1077,9 @@ export const parseResponseMessage = (error: any): GlobalMessage => {
 
   if (error?.message && typeof error.message === "string") {
     return { message: error.message };
+  }
+  if (error?.error && typeof error.message === "string") {
+    return { message: error.error };
   }
 
   if (error?.error?.message && typeof error.error.message === "string") {

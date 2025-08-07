@@ -33,11 +33,16 @@ const result = await api.get("/job/status/123", {
   },
 });
 
-// Check if it's a polling result
-if ("finalResponse" in result) {
-  console.log(`Job completed after ${result.attempts} attempts`);
-  console.log(`Poll ID: ${result.pollId}`); // Auto-generated poll ID
-  console.log("Final data:", result.finalResponse.data);
+// TypeScript knows this is a PollingResult<T> because poll option is present
+console.log(`Job completed after ${result.attempts} attempts`);
+console.log(`Poll ID: ${result.pollId}`); // Auto-generated poll ID
+console.log("Final data:", result.finalResponse.data);
+
+// For regular requests without polling
+const regularResult = await api.get("/users/123");
+// TypeScript knows this is ApiResponse<T>
+if (regularResult.success) {
+  console.log("User data:", regularResult.data);
 }
 ```
 
@@ -1388,6 +1393,131 @@ const response = await api.get("/data", {
     stopCondition: (response) => response.data.ready,
   },
   finally: () => hideLoader(),
+});
+```
+
+## TypeScript Support & Type Safety
+
+### Automatic Type Inference
+
+The API client provides excellent TypeScript support with automatic type inference:
+
+```typescript
+import ApiClient from "hmm-api";
+
+const api = new ApiClient({
+  baseUrl: "https://api.example.com",
+});
+
+// Regular request - TypeScript knows this is ApiResponse<User>
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+const userResponse = await api.get<User>("/users/123");
+// TypeScript knows userResponse is ApiResponse<User>
+if (userResponse.success) {
+  console.log(userResponse.data.name); // ✅ TypeScript knows data is User
+}
+
+// Polling request - TypeScript knows this is PollingResult<User>
+const pollingResult = await api.get<User>("/users/123", {
+  poll: {
+    interval: 1000,
+    stopCondition: (response) => response.success,
+  },
+});
+// TypeScript knows pollingResult is PollingResult<User>
+console.log(pollingResult.attempts); // ✅ TypeScript knows this exists
+console.log(pollingResult.finalResponse.data.name); // ✅ TypeScript knows the structure
+```
+
+### Type Guards for Mixed Usage
+
+When you need to handle both polling and non-polling results dynamically:
+
+```typescript
+type ApiResult<T> = ApiResponse<T> | PollingResult<T>;
+
+function handleResult<T>(result: ApiResult<T>): T | null {
+  // Type guard to check if it's a polling result
+  if ("finalResponse" in result) {
+    // TypeScript knows this is PollingResult<T>
+    return result.finalResponse.success ? result.finalResponse.data : null;
+  } else {
+    // TypeScript knows this is ApiResponse<T>
+    return result.success ? result.data : null;
+  }
+}
+
+// Usage
+const result = await api.get<User>("/users/123", someOptions);
+const userData = handleResult(result); // userData is User | null
+```
+
+### Generic Helper Functions
+
+```typescript
+// Helper to always get ApiResponse regardless of polling
+function getResponse<T>(
+  result: ApiResponse<T> | PollingResult<T>
+): ApiResponse<T> {
+  return "finalResponse" in result ? result.finalResponse : result;
+}
+
+// Helper to extract data safely
+function extractData<T>(result: ApiResponse<T> | PollingResult<T>): T | null {
+  const response = getResponse(result);
+  return response.success ? response.data : null;
+}
+
+// Usage
+const result = await api.get<User>("/users/123", options);
+const user = extractData(result); // user is User | null
+```
+
+### Interface Definitions
+
+```typescript
+// Define your API response types
+interface ApiUser {
+  id: number;
+  name: string;
+  email: string;
+  createdAt: string;
+}
+
+interface ApiError {
+  message: string;
+  code: string;
+  details?: Record<string, any>;
+}
+
+// Use with the API client
+const api = new ApiClient({
+  baseUrl: "https://api.example.com",
+  returnParsedError: true, // Get clean error messages
+});
+
+// TypeScript will enforce the types
+const userResult = await api.get<ApiUser>("/users/123");
+const usersResult = await api.get<ApiUser[]>("/users");
+
+// Polling with types
+const pollingResult = await api.get<ApiUser>("/users/123", {
+  poll: {
+    interval: 1000,
+    stopCondition: (response) => {
+      // TypeScript knows response is ApiResponse<ApiUser>
+      return response.success && response.data.id > 0;
+    },
+    onPollSuccess: (response, attempt) => {
+      // TypeScript knows response.data is ApiUser
+      console.log(`User ${response.data.name} found on attempt ${attempt}`);
+    },
+  },
 });
 ```
 
